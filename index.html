@@ -5,6 +5,29 @@
   <title>DistiViz</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    /* Time Slider Styling */
+    .time-slider-coantainer {
+      background: #f5f7fa;
+      border-radius: 8px;
+      padding: 10px 15px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      margin: 20px 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .time-slider-container label {
+      font-weight: 600;
+    }
+    .time-slider-container select,
+    .time-slider-container input[type="date"] {
+      padding: 6px 10px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      background: #fff;
+    }
+  </style>
 </head>
 <body>
 
@@ -22,7 +45,7 @@
 
   <!-- Global Distributor Bar Chart for DREGs -->
   <section id="distributorBarChartContainer" style="margin: 20px 0; display: none;">
-    <h2>Number of DREGs per Distributor</h2>
+    <h2>Total Number of DREGs per Distributor</h2>
     <div id="distributorBarChart"></div>
   </section>
 
@@ -50,12 +73,6 @@
 
     <label for="regStatusSelect">Reg Status:</label>
     <select id="regStatusSelect"></select>
-
-    <div class="slider-group">
-      <label for="dateSlider">Select Date (Registration Date filter):</label>
-      <input type="range" id="dateSlider" />
-      <span id="dateSliderValue"></span>
-    </div>
   </section>
 
   <!-- Shared Results Section -->
@@ -136,6 +153,5 @@
       document.body.classList.toggle('dark-mode');
     });
   </script>
-
 </body>
 </html>
