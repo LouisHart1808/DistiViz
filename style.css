@@ -36,15 +36,16 @@ h2 {
 /* Labels & Inputs */
 label {
   font-weight: 600;
-  margin-right: 10px;
-  margin-top: 10px;
   display: inline-block;
+  min-width: 100px;
+  margin: 0 6px 0 0; /* reduced horizontal gap */
 }
 
 select,
-input[type="range"] {
-  margin: 5px 10px 10px 0;
-  padding: 8px 12px;
+input[type="range"],
+input[type="date"] {
+  margin: 0 20px 10px 0; /* reduced horizontal and vertical gaps */
+  padding: 6px 12px;
   font-size: 14px;
   border-radius: 6px;
   border: 1px solid #ccc;
@@ -53,7 +54,8 @@ input[type="range"] {
 }
 
 select:focus,
-input[type="range"]:focus {
+input[type="range"]:focus,
+input[type="date"]:focus {
   outline: 2px solid #0077cc;
   outline-offset: 2px;
   border-color: #0077cc;
@@ -84,6 +86,52 @@ input[type="range"]:focus {
 .slider-wrapper input[type="range"] {
   flex: 1;
   margin: 0;
+}
+
+/* Time Slider Container */
+.time-slider-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: none;
+  border: none;
+  box-shadow: none;
+  margin: 10px 0;
+  padding: 0;
+}
+
+.time-slider-container label {
+  font-weight: 600;
+  color: #333;
+  flex: 0 0 auto;
+  min-width: 50px;
+  margin: 0;
+}
+
+.time-slider-container select,
+.time-slider-container input[type="date"] {
+  margin: 0;
+  padding: 6px 12px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.time-slider-container select:focus,
+.time-slider-container input[type="date"]:focus {
+  outline: none;
+  border-color: #0077cc;
+  box-shadow: 0 0 4px rgba(0,119,204,0.3);
+}
+
+.time-slider-container input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.5);
+  cursor: pointer;
 }
 
 /* Expander Section */
@@ -171,27 +219,8 @@ tr:hover td {
   background-color: #eef7ff;
 }
 
-/* Highlighted Confidence Cells */
-td:nth-child(6)[style*="#ff4c4c"] {
-  color: #fff;
-  font-weight: bold;
-  background-color: #b22222 !important;
-}
-
-td:nth-child(6)[style*="#ffcc66"] {
-  color: #fff;
-  font-weight: bold;
-  background-color: #d2691e !important;
-}
-
-td:nth-child(6)[style*="#99e699"] {
-  color: #fff;
-  font-weight: bold;
-  background-color: #2e8b57 !important;
-}
-
-/* Bar Chart & SVG */
-#barChart {
+/* Charts & SVGs */
+#barChart, #dregBreakdownChart {
   margin-top: 40px;
 }
 
@@ -201,7 +230,7 @@ svg {
 }
 
 /* Tooltip */
-.tooltip {
+#tooltip {
   position: absolute;
   display: none;
   background: #fff;
@@ -213,13 +242,6 @@ svg {
   pointer-events: none;
   box-shadow: 0 2px 6px rgba(0,0,0,0.15);
   z-index: 10;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.tooltip.show {
-  display: block;
-  opacity: 1;
 }
 
 /* Buttons */
@@ -244,7 +266,7 @@ button:focus {
   box-shadow: 0 0 4px rgba(0, 119, 204, 0.3);
 }
 
-/* Navbar Styling */
+/* Navbar */
 nav {
   background: linear-gradient(135deg, #0077cc, #005fa3);
   color: #fff;
@@ -284,7 +306,7 @@ nav {
   color: #cce6ff;
 }
 
-/* Dark Mode Toggle in Navbar */
+/* Dark Mode Toggle */
 #darkModeToggle {
   background: none;
   border: 2px solid #fff;
@@ -366,8 +388,12 @@ body.dark-mode svg {
   color: #f0f0f0;
 }
 
-body.dark-mode .tooltip {
+body.dark-mode #tooltip {
   background: #fff;
   color: #333;
   border-color: #555;
+}
+
+#dreg-filters {
+  margin-bottom: 0.25px;
 }
