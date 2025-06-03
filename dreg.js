@@ -4,7 +4,7 @@ d3.csv("data/DistiDregs.csv").then(data => {
   const distributorSelect = d3.select("#distributorSelect");
   const regStatusSelect = d3.select("#regStatusSelect");
 
-  // Convert Excel dates to Date objects and formatted strings
+  // Excel date parsing
   function excelDateToDate(serial) {
     if (!serial) return null;
     return new Date(Math.round((serial - 25569) * 86400 * 1000));
@@ -38,15 +38,15 @@ d3.csv("data/DistiDregs.csv").then(data => {
     .append("option")
     .text(d => d);
 
-  // Insert Time Slider above breakdown histogram
+  // Insert Time Slider
   const dregBreakdownSection = d3.select("#dreg-breakdown-section");
+  d3.select("#timeSliderContainer").remove();
   const timeSliderContainer = dregBreakdownSection.insert("div", ":first-child")
     .attr("id", "timeSliderContainer")
     .attr("class", "time-slider-container");
 
   timeSliderContainer.append("label")
-    .text("Date Type:")
-    .style("font-weight", "600");
+    .text("Date Type:");
 
   const dateTypeSelect = timeSliderContainer.append("select").attr("id", "dateTypeSelect");
   ["Registration Date", "Approval Date"].forEach(type => {
@@ -54,8 +54,7 @@ d3.csv("data/DistiDregs.csv").then(data => {
   });
 
   timeSliderContainer.append("label")
-    .text("Up to:")
-    .style("font-weight", "600");
+    .text("Up to:");
 
   const minDate = d3.min(data, d => d["Registration Date Raw"] || d["Approval Date Raw"]);
   const maxDate = d3.max(data, d => d["Registration Date Raw"] || d["Approval Date Raw"]);
@@ -70,7 +69,6 @@ d3.csv("data/DistiDregs.csv").then(data => {
   // Events
   dateInput.on("change", update);
   dateTypeSelect.on("change", update);
-
   distributorSelect.on("change", update);
   regStatusSelect.on("change", update);
 
@@ -83,7 +81,7 @@ d3.csv("data/DistiDregs.csv").then(data => {
 
     const width = 1000;
     const height = 300;
-    const margin = { top: 20, right: 20, bottom: 60, left: 50 };
+    const margin = { top: 20, right: 20, bottom: 80, left: 50 };
 
     const svg = d3.select("#distributorBarChart")
       .append("svg")
@@ -130,9 +128,7 @@ d3.csv("data/DistiDregs.csv").then(data => {
         tooltip.style("left", (event.pageX + 10) + "px")
           .style("top", (event.pageY - 30) + "px");
       })
-      .on("mouseout", () => {
-        tooltip.style("display", "none");
-      })
+      .on("mouseout", () => tooltip.style("display", "none"))
       .on("click", (event, d) => {
         distributorSelect.property("value", d.Distributor);
         update();
@@ -236,9 +232,7 @@ d3.csv("data/DistiDregs.csv").then(data => {
         tooltip.style("left", (event.pageX + 10) + "px")
           .style("top", (event.pageY - 30) + "px");
       })
-      .on("mouseout", () => {
-        tooltip.style("display", "none");
-      })
+      .on("mouseout", () => tooltip.style("display", "none"))
       .transition()
       .duration(500)
       .attr("y", d => y(d.Count))
@@ -258,23 +252,40 @@ d3.csv("data/DistiDregs.csv").then(data => {
       const headerRow = expander.append("div")
         .style("display", "flex")
         .style("align-items", "center")
-        .style("gap", "10px");
-      headerRow.append("h3").text(region).style("flex", "1").on("click", function () {
-        const tableContainer = this.parentNode.nextElementSibling;
+        .style("justify-content", "space-between")
+        .style("flex-wrap", "nowrap")
+        .style("width", "100%");
+
+      const headerLeft = headerRow.append("div")
+        .style("display", "flex")
+        .style("align-items", "center")
+        .style("gap", "10px")
+        .style("flex", "1");
+
+      headerLeft.append("h3").text(region).style("margin", "0").on("click", function () {
+        const tableContainer = this.parentNode.parentNode.nextElementSibling;
         tableContainer.classList.toggle("collapsed");
         tableContainer.classList.toggle("expanded");
       });
-      headerRow.append("button")
+
+      const headerRight = headerRow.append("div")
+        .style("display", "flex")
+        .style("align-items", "center")
+        .style("gap", "10px");
+
+      headerRight.append("button")
         .text("Download CSV")
         .on("click", () => {
           downloadCSV(rows, `${selectedDistributor}_${region}.csv`);
         });
-      const rowsPerPageSelect = headerRow.append("select").style("margin-left", "auto");
+
+      const rowsPerPageSelect = headerRight.append("select").style("margin", "0");
       [10, 20, 50, "All"].forEach(num => {
         rowsPerPageSelect.append("option")
           .attr("value", num)
           .text(num === "All" ? "All" : `${num} rows`);
       });
+
       const tableContainer = expander.append("div").attr("class", "table-container collapsed");
       let currentPage = 0;
       let rowsPerPage = rowsPerPageSelect.property("value") === "All" ? rows.length : +rowsPerPageSelect.property("value");

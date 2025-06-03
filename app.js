@@ -81,24 +81,38 @@ d3.csv("data/DistiApps.csv").then(data => {
     grouped.forEach((rows, distributor) => {
       const expander = container.append("div").attr("class", "expander");
 
+      // NEW: Header row with alignment fix
       const headerRow = expander.append("div")
         .style("display", "flex")
         .style("align-items", "center")
-        .style("gap", "10px");
+        .style("justify-content", "space-between")
+        .style("flex-wrap", "nowrap")
+        .style("width", "100%");
 
-      headerRow.append("h3").text(distributor).style("flex", "1").on("click", function () {
-        const tableContainer = this.parentNode.nextElementSibling;
+      const headerLeft = headerRow.append("div")
+        .style("display", "flex")
+        .style("align-items", "center")
+        .style("gap", "10px")
+        .style("flex", "1");
+
+      headerLeft.append("h3").text(distributor).style("margin", "0").on("click", function () {
+        const tableContainer = this.parentNode.parentNode.nextElementSibling;
         tableContainer.classList.toggle("collapsed");
         tableContainer.classList.toggle("expanded");
       });
 
-      headerRow.append("button")
+      const headerRight = headerRow.append("div")
+        .style("display", "flex")
+        .style("align-items", "center")
+        .style("gap", "10px");
+
+      headerRight.append("button")
         .text("Download CSV")
         .on("click", () => {
           downloadCSV(rows, `${distributor}_${selectedRegion}.csv`);
         });
 
-      const rowsPerPageSelect = headerRow.append("select").style("margin-left", "auto");
+      const rowsPerPageSelect = headerRight.append("select").style("margin", "0");
       [10, 20, 50, "All"].forEach(num => {
         rowsPerPageSelect.append("option")
           .attr("value", num)
