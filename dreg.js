@@ -4,6 +4,12 @@ d3.csv("data/DistiDregs.csv").then(data => {
   const distributorSelect = d3.select("#distributorSelect");
   const regStatusSelect = d3.select("#regStatusSelect");
 
+  // Convert Excel serial dates to JS Date
+  data.forEach(d => {
+    d["Registration Date"] = excelDateToJSDate(+d["Registration Date"]);
+    d["Approval Date"] = excelDateToJSDate(+d["Approval Date"]);
+  });
+
   // Populate Distributor dropdown (no "All" option)
   const distributors = Array.from(new Set(data.map(d => d.Distributor))).sort();
   distributorSelect.selectAll("option")
@@ -20,90 +26,39 @@ d3.csv("data/DistiDregs.csv").then(data => {
     .append("option")
     .text(d => d);
 
-  // Render the global bar chart for number of DREGs per Distributor
+  // Create date slider
+  const minDate = d3.min(data, d => d["Registration Date"]);
+  const maxDate = d3.max(data, d => d["Registration Date"]);
+  d3.select("#dateSlider")
+    .attr("type", "range")
+    .attr("min", +minDate)
+    .attr("max", +maxDate)
+    .attr("value", +minDate)
+    .on("input", update);
+  d3.select("#dateSliderValue").text(formatDate(minDate));
+
+  // Initial charts
   renderDistributorBarChart();
 
-  // Update on distributor/reg status changes
+  // Event listeners
   distributorSelect.on("change", update);
   regStatusSelect.on("change", update);
-
-  function renderDistributorBarChart() {
-    const counts = d3.rollups(data, v => v.length, d => d.Distributor)
-      .map(([Distributor, Count]) => ({ Distributor, Count }))
-      .sort((a, b) => d3.descending(a.Count, b.Count));
-
-    const width = 1000;
-    const height = 300;
-    const margin = { top: 20, right: 20, bottom: 60, left: 50 };
-
-    const svg = d3.select("#distributorBarChart")
-      .append("svg")
-      .attr("width", width)
-      .attr("height", height);
-
-    const x = d3.scaleBand()
-      .domain(counts.map(d => d.Distributor))
-      .range([margin.left, width - margin.right])
-      .padding(0.2);
-
-    const y = d3.scaleLinear()
-      .domain([0, d3.max(counts, d => d.Count) || 0])
-      .nice()
-      .range([height - margin.bottom, margin.top]);
-
-    svg.append("g")
-      .attr("transform", `translate(0,${height - margin.bottom})`)
-      .call(d3.axisBottom(x))
-      .selectAll("text")
-      .attr("transform", "rotate(-45)")
-      .style("text-anchor", "end")
-      .style("font-size", "12px");
-
-    svg.append("g")
-      .attr("transform", `translate(${margin.left},0)`)
-      .call(d3.axisLeft(y));
-
-    const tooltip = d3.select("#tooltip");
-
-    svg.selectAll("rect")
-      .data(counts)
-      .enter()
-      .append("rect")
-      .attr("x", d => x(d.Distributor))
-      .attr("y", height - margin.bottom)
-      .attr("width", x.bandwidth())
-      .attr("height", 0)
-      .attr("fill", "steelblue")
-      .on("mouseover", (event, d) => {
-        tooltip.style("display", "block")
-          .html(`<strong>${d.Distributor}</strong><br/>DREGs: ${d.Count}`)
-          .style("color", "#000");
-      })
-      .on("mousemove", event => {
-        tooltip.style("left", (event.pageX + 10) + "px")
-          .style("top", (event.pageY - 30) + "px");
-      })
-      .on("mouseout", () => {
-        tooltip.style("display", "none");
-      })
-      .on("click", (event, d) => {
-        distributorSelect.property("value", d.Distributor);
-        update();
-      })
-      .transition()
-      .duration(500)
-      .attr("y", d => y(d.Count))
-      .attr("height", d => height - margin.bottom - y(d.Count));
-  }
 
   function update() {
     const selectedDistributor = distributorSelect.property("value");
     const selectedRegStatus = regStatusSelect.property("value");
+    const selectedDate = new Date(+d3.select("#dateSlider").property("value"));
+    d3.select("#dateSliderValue").text(formatDate(selectedDate));
 
     let filtered = data.filter(d => d.Distributor === selectedDistributor);
     if (selectedRegStatus !== "All") {
       filtered = filtered.filter(d => d["Reg Status"] === selectedRegStatus);
     }
+
+    // Filter by date range
+    filtered = filtered.filter(d =>
+      d["Registration Date"] <= selectedDate && d["Approval Date"] >= selectedDate
+    );
 
     const grouped = d3.group(filtered, d => d["Region Resale Customer"]);
 
@@ -125,16 +80,16 @@ d3.csv("data/DistiDregs.csv").then(data => {
       renderBreakdownChart(filtered, this.value);
     });
 
+    // Display tables
     const container = d3.select("#results").html("<h2>DREGs by Region Resale Customer</h2>");
     const columns = [
       "Subregion Resp", "Country Resale Customer", "Resale Customer",
-      "Customer Category", "Project", "Market Segment", "Market Application",
-      "DIV", "PL", "Segment", "Project Status", "Reg Status"
+      "Market Segment", "Market Application", "DIV", "PL", "Segment",
+      "Project Status", "Reg Status"
     ];
 
     grouped.forEach((rows, region) => {
       const expander = container.append("div").attr("class", "expander");
-
       const headerRow = expander.append("div")
         .style("display", "flex")
         .style("align-items", "center")
@@ -159,20 +114,17 @@ d3.csv("data/DistiDregs.csv").then(data => {
           .text(num === "All" ? "All" : `${num} rows`);
       });
 
-      const tableContainer = expander.append("div")
-        .attr("class", "table-container collapsed");
-
+      const tableContainer = expander.append("div").attr("class", "table-container collapsed");
       let currentPage = 0;
       let rowsPerPage = rowsPerPageSelect.property("value") === "All" ? rows.length : +rowsPerPageSelect.property("value");
 
       function renderTable() {
         tableContainer.html("");
-
         const table = tableContainer.append("table");
         const thead = table.append("thead").append("tr");
         thead.selectAll("th").data(columns).enter().append("th").text(d => d);
-
         const tbody = table.append("tbody");
+
         let displayedRows = rows;
         if (rowsPerPage !== "All") {
           const start = currentPage * rowsPerPage;
@@ -216,40 +168,30 @@ d3.csv("data/DistiDregs.csv").then(data => {
       }
 
       renderTable();
-
       rowsPerPageSelect.on("change", function () {
         const val = this.value;
-        if (val === "All") {
-          rowsPerPage = "All";
-        } else {
-          rowsPerPage = +val;
-          currentPage = 0;
-        }
+        rowsPerPage = val === "All" ? "All" : +val;
+        currentPage = 0;
         renderTable();
       });
     });
   }
 
-  function renderBreakdownChart(dataRows, dimension) {
-    d3.select("#dregBreakdownChart").html("");
-
-    const counts = d3.rollups(dataRows, v => v.length, d => d[dimension])
-      .map(([key, Count]) => ({ key: key || "N/A", Count }))
+  function renderDistributorBarChart() {
+    const counts = d3.rollups(data, v => v.length, d => d.Distributor)
+      .map(([Distributor, Count]) => ({ Distributor, Count }))
       .sort((a, b) => d3.descending(a.Count, b.Count));
 
     const width = 1000;
     const height = 300;
     const margin = { top: 20, right: 20, bottom: 60, left: 50 };
 
-    const svg = d3.select("#dregBreakdownChart")
-      .append("svg")
+    const svg = d3.select("#distributorBarChart").append("svg")
       .attr("width", width)
       .attr("height", height);
 
-    const x = d3.scaleBand()
-      .domain(counts.map(d => d.key))
-      .range([margin.left, width - margin.right])
-      .padding(0.2);
+    const x = d3.scaleBand().domain(counts.map(d => d.Distributor))
+      .range([margin.left, width - margin.right]).padding(0.2);
 
     const y = d3.scaleLinear()
       .domain([0, d3.max(counts, d => d.Count) || 0])
@@ -258,27 +200,70 @@ d3.csv("data/DistiDregs.csv").then(data => {
 
     svg.append("g")
       .attr("transform", `translate(0,${height - margin.bottom})`)
-      .call(d3.axisBottom(x))
-      .selectAll("text")
+      .call(d3.axisBottom(x)).selectAll("text")
       .attr("transform", "rotate(-45)")
-      .style("text-anchor", "end")
-      .style("font-size", "12px");
+      .style("text-anchor", "end").style("font-size", "12px");
 
-    svg.append("g")
-      .attr("transform", `translate(${margin.left},0)`)
+    svg.append("g").attr("transform", `translate(${margin.left},0)`)
       .call(d3.axisLeft(y));
 
     const tooltip = d3.select("#tooltip");
 
     svg.selectAll("rect")
-      .data(counts)
-      .enter()
-      .append("rect")
-      .attr("x", d => x(d.key))
-      .attr("y", height - margin.bottom)
-      .attr("width", x.bandwidth())
-      .attr("height", 0)
+      .data(counts).enter().append("rect")
+      .attr("x", d => x(d.Distributor)).attr("y", height - margin.bottom)
+      .attr("width", x.bandwidth()).attr("height", 0)
       .attr("fill", "steelblue")
+      .on("mouseover", (event, d) => {
+        tooltip.style("display", "block")
+          .html(`<strong>${d.Distributor}</strong><br/>DREGs: ${d.Count}`)
+          .style("color", "#000");
+      })
+      .on("mousemove", event => {
+        tooltip.style("left", (event.pageX + 10) + "px")
+          .style("top", (event.pageY - 30) + "px");
+      })
+      .on("mouseout", () => { tooltip.style("display", "none"); })
+      .on("click", (event, d) => {
+        distributorSelect.property("value", d.Distributor);
+        update();
+      })
+      .transition().duration(500)
+      .attr("y", d => y(d.Count))
+      .attr("height", d => height - margin.bottom - y(d.Count));
+  }
+
+  function renderBreakdownChart(dataRows, dimension) {
+    d3.select("#dregBreakdownChart").html("");
+    const counts = d3.rollups(dataRows, v => v.length, d => d[dimension])
+      .map(([key, Count]) => ({ key: key || "N/A", Count }))
+      .sort((a, b) => d3.descending(a.Count, b.Count));
+
+    const width = 1000;
+    const height = 300;
+    const margin = { top: 20, right: 20, bottom: 60, left: 50 };
+
+    const svg = d3.select("#dregBreakdownChart").append("svg")
+      .attr("width", width).attr("height", height);
+
+    const x = d3.scaleBand().domain(counts.map(d => d.key))
+      .range([margin.left, width - margin.right]).padding(0.2);
+
+    const y = d3.scaleLinear()
+      .domain([0, d3.max(counts, d => d.Count) || 0])
+      .nice().range([height - margin.bottom, margin.top]);
+
+    svg.append("g").attr("transform", `translate(0,${height - margin.bottom})`)
+      .call(d3.axisBottom(x)).selectAll("text")
+      .attr("transform", "rotate(-45)").style("text-anchor", "end").style("font-size", "12px");
+
+    svg.append("g").attr("transform", `translate(${margin.left},0)`).call(d3.axisLeft(y));
+
+    const tooltip = d3.select("#tooltip");
+
+    svg.selectAll("rect").data(counts).enter().append("rect")
+      .attr("x", d => x(d.key)).attr("y", height - margin.bottom)
+      .attr("width", x.bandwidth()).attr("height", 0).attr("fill", "steelblue")
       .on("mouseover", (event, d) => {
         tooltip.style("display", "block")
           .html(`<strong>${d.key}</strong><br/>DREGs: ${d.Count}`)
@@ -288,13 +273,9 @@ d3.csv("data/DistiDregs.csv").then(data => {
         tooltip.style("left", (event.pageX + 10) + "px")
           .style("top", (event.pageY - 30) + "px");
       })
-      .on("mouseout", () => {
-        tooltip.style("display", "none");
-      })
-      .transition()
-      .duration(500)
-      .attr("y", d => y(d.Count))
-      .attr("height", d => height - margin.bottom - y(d.Count));
+      .on("mouseout", () => { tooltip.style("display", "none"); })
+      .transition().duration(500)
+      .attr("y", d => y(d.Count)).attr("height", d => height - margin.bottom - y(d.Count));
   }
 
   function downloadCSV(dataRows, filename) {
@@ -304,8 +285,8 @@ d3.csv("data/DistiDregs.csv").then(data => {
     }
     const columns = [
       "Subregion Resp", "Country Resale Customer", "Resale Customer",
-      "Customer Category", "Project", "Market Segment", "Market Application",
-      "DIV", "PL", "Segment", "Project Status", "Reg Status"
+      "Market Segment", "Market Application", "DIV", "PL", "Segment",
+      "Project Status", "Reg Status"
     ];
     const csvRows = dataRows.map(row => columns.map(field => `"${row[field] || ""}"`).join(","));
     const csvContent = [columns.join(","), ...csvRows].join("\n");
@@ -314,11 +295,17 @@ d3.csv("data/DistiDregs.csv").then(data => {
     const url = URL.createObjectURL(blob);
 
     const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
+    link.href = url; link.download = filename;
+    document.body.appendChild(link); link.click();
     document.body.removeChild(link);
+  }
+
+  function excelDateToJSDate(serial) {
+    return new Date((serial - 25569) * 86400 * 1000);
+  }
+
+  function formatDate(date) {
+    return date.toISOString().split("T")[0];
   }
 
   update();

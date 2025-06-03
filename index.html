@@ -20,6 +20,12 @@
     </div>
   </nav>
 
+  <!-- Global Distributor Bar Chart for DREGs -->
+  <section id="distributorBarChartContainer" style="margin: 20px 0; display: none;">
+    <h2>Number of DREGs per Distributor</h2>
+    <div id="distributorBarChart"></div>
+  </section>
+
   <!-- Filters for Applications -->
   <section id="app-filters">
     <label for="regionSelect">Region:</label>
@@ -44,12 +50,12 @@
 
     <label for="regStatusSelect">Reg Status:</label>
     <select id="regStatusSelect"></select>
-  </section>
 
-  <!-- Global Distributor Bar Chart for DREGs -->
-  <section id="distributorBarChartContainer" style="margin: 20px 0; display: none;">
-    <h2>Number of DREGs per Distributor</h2>
-    <div id="distributorBarChart"></div>
+    <div class="slider-group">
+      <label for="dateSlider">Select Date (Registration Date filter):</label>
+      <input type="range" id="dateSlider" />
+      <span id="dateSliderValue"></span>
+    </div>
   </section>
 
   <!-- Shared Results Section -->
@@ -62,7 +68,6 @@
       <option value="Region Resale Customer">Region Resale Customer</option>
       <option value="Country Resale Customer">Country Resale Customer</option>
       <option value="Subregion Resp">Subregion Resp</option>
-      <option value="Customer Category">Customer Category</option>
       <option value="Segment">Segment</option>
     </select>
     <div id="dregBreakdownChart"></div>
@@ -90,7 +95,6 @@
     }
 
     function loadScript(src) {
-      // Remove any existing dynamic scripts
       const existing = document.getElementById('dynamicScript');
       if (existing) existing.remove();
 
@@ -124,12 +128,10 @@
       loadScript('dreg.js');
     });
 
-    // Load the default tab (Applications) initially
     window.addEventListener('DOMContentLoaded', () => {
       loadScript('app.js');
     });
 
-    // Dark mode toggle
     document.getElementById('darkModeToggle').addEventListener('click', () => {
       document.body.classList.toggle('dark-mode');
     });
