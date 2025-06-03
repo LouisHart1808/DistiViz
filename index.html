@@ -5,6 +5,29 @@
   <title>DistiViz</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    /* Time Slider Styling */
+    .time-slider-container {
+      background: #f5f7fa;
+      border-radius: 8px;
+      padding: 10px 15px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      margin: 20px 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .time-slider-container label {
+      font-weight: 600;
+    }
+    .time-slider-container select,
+    .time-slider-container input[type="date"] {
+      padding: 6px 10px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      background: #fff;
+    }
+  </style>
 </head>
 <body>
 
@@ -19,6 +42,12 @@
       <button id="darkModeToggle" aria-label="Toggle Dark Mode">🌙</button>
     </div>
   </nav>
+
+  <!-- Global Distributor Bar Chart for DREGs -->
+  <section id="distributorBarChartContainer" style="margin: 20px 0; display: none;">
+    <h2>Total Number of DREGs per Distributor</h2>
+    <div id="distributorBarChart"></div>
+  </section>
 
   <!-- Filters for Applications -->
   <section id="app-filters">
@@ -46,12 +75,6 @@
     <select id="regStatusSelect"></select>
   </section>
 
-  <!-- Global Distributor Bar Chart for DREGs -->
-  <section id="distributorBarChartContainer" style="margin: 20px 0; display: none;">
-    <h2>Number of DREGs per Distributor</h2>
-    <div id="distributorBarChart"></div>
-  </section>
-
   <!-- Shared Results Section -->
   <section id="summary"></section>
 
@@ -62,7 +85,6 @@
       <option value="Region Resale Customer">Region Resale Customer</option>
       <option value="Country Resale Customer">Country Resale Customer</option>
       <option value="Subregion Resp">Subregion Resp</option>
-      <option value="Customer Category">Customer Category</option>
       <option value="Segment">Segment</option>
     </select>
     <div id="dregBreakdownChart"></div>
@@ -90,7 +112,6 @@
     }
 
     function loadScript(src) {
-      // Remove any existing dynamic scripts
       const existing = document.getElementById('dynamicScript');
       if (existing) existing.remove();
 
@@ -124,16 +145,13 @@
       loadScript('dreg.js');
     });
 
-    // Load the default tab (Applications) initially
     window.addEventListener('DOMContentLoaded', () => {
       loadScript('app.js');
     });
 
-    // Dark mode toggle
     document.getElementById('darkModeToggle').addEventListener('click', () => {
       document.body.classList.toggle('dark-mode');
     });
   </script>
-
 </body>
 </html>
