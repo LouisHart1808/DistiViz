@@ -3,12 +3,15 @@ console.log("DREGs module loaded!");
 d3.csv("data/DistiDregs.csv").then(data => {
   const distributorSelect = d3.select("#distributorSelect");
   const regStatusSelect = d3.select("#regStatusSelect");
+  const approvalInput = d3.select("#approvalDate");
+  const campaignInput = d3.select("#campaignDate");
+  const hasCampaignCheckbox = d3.select("#hasCampaignDate");
 
-  // Excel date parsing
   function excelDateToDate(serial) {
     if (!serial) return null;
     return new Date(Math.round((serial - 25569) * 86400 * 1000));
   }
+
   function dateToString(date) {
     if (!date) return "";
     const day = String(date.getUTCDate()).padStart(2, "0");
@@ -38,41 +41,63 @@ d3.csv("data/DistiDregs.csv").then(data => {
     .append("option")
     .text(d => d);
 
-  // Insert Time Slider
-  const dregBreakdownSection = d3.select("#dreg-breakdown-section");
-  d3.select("#timeSliderContainer").remove();
-  const timeSliderContainer = dregBreakdownSection.insert("div", ":first-child")
-    .attr("id", "timeSliderContainer")
-    .attr("class", "time-slider-container");
-
-  timeSliderContainer.append("label")
-    .text("Date Type:");
-
-  const dateTypeSelect = timeSliderContainer.append("select").attr("id", "dateTypeSelect");
-  ["Registration Date", "Approval Date"].forEach(type => {
-    dateTypeSelect.append("option").attr("value", type).text(type);
-  });
-
-  timeSliderContainer.append("label")
-    .text("Up to:");
-
-  const minDate = d3.min(data, d => d["Registration Date Raw"] || d["Approval Date Raw"]);
-  const maxDate = d3.max(data, d => d["Registration Date Raw"] || d["Approval Date Raw"]);
-
-  const dateInput = timeSliderContainer.append("input")
-    .attr("type", "date")
-    .attr("id", "timeSlider")
-    .attr("min", d3.timeFormat("%Y-%m-%d")(minDate))
-    .attr("max", d3.timeFormat("%Y-%m-%d")(maxDate))
-    .attr("value", d3.timeFormat("%Y-%m-%d")(maxDate));
-
-  // Events
-  dateInput.on("change", update);
-  dateTypeSelect.on("change", update);
+  approvalInput.on("change", update);
+  campaignInput.on("change", update);
+  hasCampaignCheckbox.on("change", update);
   distributorSelect.on("change", update);
   regStatusSelect.on("change", update);
 
   renderDistributorBarChart();
+
+  function update() {
+    const selectedDistributor = distributorSelect.property("value");
+    const selectedRegStatus = regStatusSelect.property("value");
+    const approvalDate = new Date(approvalInput.property("value"));
+    const campaignDate = new Date(campaignInput.property("value"));
+    const useCampaign = hasCampaignCheckbox.property("checked");
+
+    if (useCampaign && campaignDate > approvalDate) {
+      alert("Campaign Date must be on or before Approval Date.");
+      return;
+    }
+
+    let filtered = data.filter(d => d.Distributor === selectedDistributor);
+    if (selectedRegStatus !== "All") {
+      filtered = filtered.filter(d => d["Reg Status"] === selectedRegStatus);
+    }
+
+    filtered = filtered.filter(d => {
+      const approval = d["Approval Date Raw"];
+      if (!approval) return false;
+
+      const passesApproval = approval <= approvalDate;
+      const passesCampaign = !useCampaign || approval >= campaignDate;
+
+      return passesApproval && passesCampaign;
+    });
+
+    const grouped = d3.group(filtered, d => d["Region Resale Customer"]);
+    d3.select("#summary").html(`
+      <h2>Summary Metrics</h2>
+      <p>Distributor: <strong>${selectedDistributor}</strong></p>
+      <p>Reg Status: <strong>${selectedRegStatus === "All" ? "Any" : selectedRegStatus}</strong></p>
+      <p>Campaign Date from: <strong>${useCampaign ? dateToString(campaignDate) : "Not Used"}</strong></p>
+      <p>Approval Date up to: <strong>${dateToString(approvalDate)}</strong></p>
+      <p>Total DREG Entries: <strong>${filtered.length}</strong></p>
+      <button id="downloadDREGsCsv">Download Filtered CSV</button>
+    `);
+
+    d3.select("#downloadDREGsCsv").on("click", () => {
+      downloadCSV(filtered, `DREGs_${selectedDistributor}_${selectedRegStatus}.csv`);
+    });
+
+    renderBreakdownChart(filtered, d3.select("#breakdownSelect").property("value"));
+    d3.select("#breakdownSelect").on("change", function () {
+      renderBreakdownChart(filtered, this.value);
+    });
+
+    renderTables(filtered, grouped, selectedDistributor);
+  }
 
   function renderDistributorBarChart() {
     const counts = d3.rollups(data, v => v.length, d => d.Distributor)
@@ -137,44 +162,6 @@ d3.csv("data/DistiDregs.csv").then(data => {
       .duration(500)
       .attr("y", d => y(d.Count))
       .attr("height", d => height - margin.bottom - y(d.Count));
-  }
-
-  function update() {
-    const selectedDistributor = distributorSelect.property("value");
-    const selectedRegStatus = regStatusSelect.property("value");
-    const selectedDateType = dateTypeSelect.property("value");
-    const sliderDate = new Date(dateInput.property("value"));
-
-    let filtered = data.filter(d => d.Distributor === selectedDistributor);
-    if (selectedRegStatus !== "All") {
-      filtered = filtered.filter(d => d["Reg Status"] === selectedRegStatus);
-    }
-    filtered = filtered.filter(d => {
-      const entryDate = d[selectedDateType + " Raw"];
-      return entryDate && entryDate <= sliderDate;
-    });
-
-    const grouped = d3.group(filtered, d => d["Region Resale Customer"]);
-    d3.select("#summary").html(`
-      <h2>Summary Metrics</h2>
-      <p>Distributor: <strong>${selectedDistributor}</strong></p>
-      <p>Reg Status: <strong>${selectedRegStatus === "All" ? "Any" : selectedRegStatus}</strong></p>
-      <p>Date Filter: <strong>${selectedDateType} up to ${dateToString(sliderDate)}</strong></p>
-      <p>Region Resale Customers: ${grouped.size}</p>
-      <p>Total DREGs Entries: ${filtered.length}</p>
-      <button id="downloadDREGsCsv">Download Filtered CSV</button>
-    `);
-
-    d3.select("#downloadDREGsCsv").on("click", () => {
-      downloadCSV(filtered, `DREGs_${selectedDistributor}_${selectedRegStatus}.csv`);
-    });
-
-    renderBreakdownChart(filtered, d3.select("#breakdownSelect").property("value"));
-    d3.select("#breakdownSelect").on("change", function () {
-      renderBreakdownChart(filtered, this.value);
-    });
-
-    renderTables(filtered, grouped, selectedDistributor);
   }
 
   function renderBreakdownChart(filteredData, dimension) {
@@ -243,9 +230,8 @@ d3.csv("data/DistiDregs.csv").then(data => {
     const container = d3.select("#results").html("<h2>DREGs by Region Resale Customer</h2>");
     const columns = [
       "Subregion Resp", "Country Resale Customer", "Resale Customer",
-      "Market Segment", "Market Application",
-      "DIV", "PL", "Segment", "Project Status", "Reg Status",
-      "Registration Date", "Approval Date"
+      "Market Segment", "Market Application", "DIV", "PL", "Segment",
+      "Project Status", "Reg Status", "Registration Date", "Approval Date"
     ];
     grouped.forEach((rows, region) => {
       const expander = container.append("div").attr("class", "expander");
@@ -253,7 +239,7 @@ d3.csv("data/DistiDregs.csv").then(data => {
         .style("display", "flex")
         .style("align-items", "center")
         .style("justify-content", "space-between")
-        .style("flex-wrap", "nowrap")
+        .style("flex-wrap", "nowrap")   // key
         .style("width", "100%");
 
       const headerLeft = headerRow.append("div")
@@ -289,24 +275,28 @@ d3.csv("data/DistiDregs.csv").then(data => {
       const tableContainer = expander.append("div").attr("class", "table-container collapsed");
       let currentPage = 0;
       let rowsPerPage = rowsPerPageSelect.property("value") === "All" ? rows.length : +rowsPerPageSelect.property("value");
+
       function renderTable() {
         tableContainer.html("");
         const table = tableContainer.append("table");
         const thead = table.append("thead").append("tr");
         thead.selectAll("th").data(columns).enter().append("th").text(d => d);
         const tbody = table.append("tbody");
+
         let displayedRows = rows;
         if (rowsPerPage !== "All") {
           const start = currentPage * rowsPerPage;
           const end = start + rowsPerPage;
           displayedRows = rows.slice(start, end);
         }
+
         displayedRows.forEach(row => {
           const tr = tbody.append("tr");
           columns.forEach(col => {
             tr.append("td").text(row[col] || "");
           });
         });
+
         if (rowsPerPage !== "All") {
           const pagination = tableContainer.append("div").style("margin-top", "8px");
           pagination.append("button")
@@ -318,9 +308,11 @@ d3.csv("data/DistiDregs.csv").then(data => {
                 renderTable();
               }
             });
+
           pagination.append("span")
             .style("margin", "0 8px")
             .text(`Page ${currentPage + 1} of ${Math.ceil(rows.length / rowsPerPage)}`);
+
           pagination.append("button")
             .text("Next")
             .attr("disabled", currentPage >= Math.ceil(rows.length / rowsPerPage) - 1 ? true : null)
@@ -332,7 +324,9 @@ d3.csv("data/DistiDregs.csv").then(data => {
             });
         }
       }
+
       renderTable();
+
       rowsPerPageSelect.on("change", function () {
         const val = this.value;
         if (val === "All") {
@@ -349,9 +343,8 @@ d3.csv("data/DistiDregs.csv").then(data => {
   function downloadCSV(dataRows, filename) {
     const columns = [
       "Subregion Resp", "Country Resale Customer", "Resale Customer",
-      "Market Segment", "Market Application",
-      "DIV", "PL", "Segment", "Project Status", "Reg Status",
-      "Registration Date", "Approval Date"
+      "Market Segment", "Market Application", "DIV", "PL", "Segment", "Project Status",
+      "Reg Status", "Registration Date", "Approval Date"
     ];
     const csvRows = dataRows.map(row => columns.map(field => `"${row[field] || ""}"`).join(","));
     const csvContent = [columns.join(","), ...csvRows].join("\n");
