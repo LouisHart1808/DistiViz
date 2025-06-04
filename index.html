@@ -20,7 +20,7 @@
     </div>
   </nav>
 
-  <!-- Global Distributor Bar Chart for DREGs -->
+  <!-- Global DREG Histogram -->
   <section id="distributorBarChartContainer" style="margin: 20px 0; display: none;">
     <h2>Total Number of DREGs per Distributor</h2>
     <div id="distributorBarChart"></div>
@@ -45,17 +45,30 @@
 
   <!-- Filters for DREGs -->
   <section id="dreg-filters" style="display: none;">
+    <h2>DREG Filters</h2>
+
     <label for="distributorSelect">Distributor:</label>
     <select id="distributorSelect"></select>
 
     <label for="regStatusSelect">Reg Status:</label>
     <select id="regStatusSelect"></select>
+
+    <label for="approvalDate">Approval Date up to:</label>
+    <input type="date" id="approvalDate" />
+
+    <label for="campaignDate">Campaign Date:</label>
+    <input type="date" id="campaignDate" />
+
+    <label>
+      <input type="checkbox" id="hasCampaignDate" checked />
+      Filter by Campaign Date
+    </label>
   </section>
 
-  <!-- Summary Metrics -->
+  <!-- Summary -->
   <section id="summary"></section>
 
-  <!-- Dynamic breakdown chart and selector for DREGs -->
+  <!-- DREG Breakdown Chart -->
   <section id="dreg-breakdown-section" style="margin-top: 20px; display: none;">
     <label for="breakdownSelect">Group DREGs By:</label>
     <select id="breakdownSelect">
@@ -67,11 +80,16 @@
     <div id="dregBreakdownChart"></div>
   </section>
 
+  <!-- Application/Breakdown Bar Chart -->
   <section id="barChart"></section>
+
+  <!-- Application/DREG Tables -->
   <section id="results"></section>
 
+  <!-- Tooltip -->
   <div id="tooltip" style="position:absolute; display:none; background:#fff; padding:8px; border:1px solid #ccc; border-radius:4px; font-size:12px; pointer-events:none;"></div>
 
+  <!-- Nav Logic -->
   <script>
     const navApps = document.getElementById('nav-apps');
     const navDregs = document.getElementById('nav-dregs');
