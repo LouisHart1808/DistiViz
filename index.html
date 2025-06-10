@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>DistiViz</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav>
+    <div class="navbar-container">
+      <h1>DistiViz</h1>
+      <ul>
+        <li><a href="#" id="nav-apps" class="active">Distributors' Applications</a></li>
+        <li><a href="#" id="nav-dregs">Distributors' DREGs</a></li>
+      </ul>
+      <button id="darkModeToggle" aria-label="Toggle Dark Mode">🌙</button>
+    </div>
+  </nav>
+
+  <!-- DREG Chart: Total per Distributor -->
+  <section id="distributorBarChartContainer" style="margin: 20px 0; display: none;">
+    <h2>Total Number of DREGs per Distributor</h2>
+    <div id="distributorBarChart"></div>
+  </section>
+
+  <!-- Applications Filters -->
+  <section id="app-filters">
+    <label for="regionSelect">Region:</label>
+    <select id="regionSelect"></select>
+
+    <label for="level3Select">System/Application Level III:</label>
+    <select id="level3Select"></select>
+
+    <div class="slider-group">
+      <label for="scoreSlider">Min Confidence:</label>
+      <div class="slider-wrapper">
+        <input type="range" id="scoreSlider" min="0" max="100" value="0" step="10" />
+        <span id="scoreValue">0</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- DREG Filters -->
+  <section id="dreg-filters" style="display: none;">
+    <h2>DREG Filters</h2>
+
+    <label for="distributorSelect">Distributor:</label>
+    <select id="distributorSelect"></select>
+
+    <label for="regStatusSelect">Reg Status:</label>
+    <select id="regStatusSelect"></select>
+
+    <label for="approvalDate">Approval Date up to:</label>
+    <input type="date" id="approvalDate" />
+
+    <label for="campaignDate">Campaign Date:</label>
+    <input type="date" id="campaignDate" />
+
+    <label>
+      <input type="checkbox" id="hasCampaignDate" checked />
+      Filter by Campaign Date
+    </label>
+  </section>
+
+  <!-- Summary Info -->
+  <section id="summary"></section>
+
+  <!-- DREG Breakdown Chart -->
+  <section id="dreg-breakdown-section" style="margin-top: 20px; display: none;">
+    <label for="breakdownSelect">Group DREGs By:</label>
+    <select id="breakdownSelect">
+      <option value="Region Resale Customer">Region Resale Customer</option>
+      <option value="Segment">Segment</option>
+    </select>
+    <div id="dregBreakdownChart"></div>
+  </section>
+
+  <!-- Shared Bar Chart -->
+  <section id="barChart"></section>
+
+  <!-- Dynamic Results Area -->
+  <section id="results"></section>
+
+  <!-- Tooltip -->
+  <div id="tooltip" class="tooltip"></div>
+
+  <!-- Modular App Entry -->
+  <script type="module" src="scripts/main.js"></script>
+</body>
+</html>

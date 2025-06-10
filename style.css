@@ -1,0 +1,366 @@
+/* Global Reset & Base */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, #f9f9fb, #e6ecf3);
+  color: #333;
+  line-height: 1.6;
+  max-width: 1200px;
+  margin: auto;
+  padding: 24px;
+  font-size: 15px;
+}
+
+/* Headings */
+h1 {
+  color: #1c3d5a;
+  font-size: 32px;
+  margin-bottom: 20px;
+  font-weight: 700;
+}
+
+h2 {
+  color: #2c3e50;
+  font-size: 22px;
+  margin: 40px 0 10px;
+  border-bottom: 2px solid #ccc;
+  padding-bottom: 5px;
+}
+
+/* Labels & Inputs */
+label {
+  font-weight: 600;
+  display: inline-block;
+  min-width: 100px;
+  margin: 0 6px 0 0;
+}
+
+select,
+input[type="range"],
+input[type="date"] {
+  margin: 0 20px 10px 0;
+  padding: 6px 12px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #fff;
+  transition: border 0.3s, box-shadow 0.3s;
+}
+
+select:focus,
+input[type="range"]:focus,
+input[type="date"]:focus {
+  outline: 2px solid #0077cc;
+  outline-offset: 2px;
+  border-color: #0077cc;
+  box-shadow: 0 0 4px rgba(0, 119, 204, 0.3);
+}
+
+#scoreValue {
+  font-weight: bold;
+  margin-left: 8px;
+  color: #0077cc;
+}
+
+/* Slider Group */
+.slider-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.slider-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.slider-wrapper input[type="range"] {
+  flex: 1;
+  margin: 0;
+}
+
+/* Time Slider Container */
+.time-slider-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}
+
+.time-slider-container label {
+  min-width: 50px;
+}
+
+.time-slider-container select,
+.time-slider-container input[type="date"] {
+  margin: 0;
+  padding: 6px 12px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+}
+
+/* Expander (cards) styling */
+.expander {
+  margin-top: 24px;
+  border-radius: 8px;
+  background: #f5f7fa; /* Restored lighter background */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+  border: 1px solid #ddd;
+  overflow: hidden;
+  width: 100%;
+}
+
+.expander h3 {
+  margin: 0;
+  cursor: pointer;
+  font-size: 16px;
+  background: #e6ecf3; /* Restored header color */
+  padding: 12px 16px;
+  border-bottom: 1px solid #ddd;
+  font-weight: 600;
+  flex: 1; /* Make sure the title fills available space */
+  transition: background 0.3s;
+}
+
+.expander h3:hover {
+  background: #d6e4f0;
+}
+
+.table-container {
+  max-height: 300px;
+  overflow-y: auto;
+  border-top: 1px solid #ddd;
+  border-radius: 0 0 8px 8px;
+  transition: max-height 0.4s ease, opacity 0.4s ease;
+  width: 100%;
+}
+
+.table-container.collapsed {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.table-container.expanded {
+  max-height: 1000px;
+  opacity: 1;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th, td {
+  word-wrap: break-word;
+  min-width: 100px;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  background: linear-gradient(to right, #0077cc, #3399ff);
+  color: #fff;
+  padding: 10px;
+  font-weight: 600;
+  text-align: left;
+}
+
+td {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  background: #fff;
+  transition: background-color 0.2s ease;
+}
+
+tr:hover td {
+  background: #eef7ff;
+}
+
+/* Charts & SVGs */
+#barChart, #dregBreakdownChart {
+  margin-top: 40px;
+}
+
+svg {
+  font-family: 'Segoe UI', sans-serif;
+  color: #333;
+}
+
+/* Tooltip */
+#tooltip {
+  position: absolute;
+  display: none;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  z-index: 10;
+}
+
+/* Buttons */
+button {
+  background: linear-gradient(135deg, #0077cc, #005fa3);
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+
+button:hover {
+  background: linear-gradient(135deg, #005fa3, #004a80);
+}
+
+button:focus {
+  outline: 2px solid #0077cc;
+  outline-offset: 2px;
+  box-shadow: 0 0 4px rgba(0, 119, 204, 0.3);
+}
+
+/* Navbar */
+nav {
+  background: linear-gradient(135deg, #0077cc, #005fa3);
+  color: #fff;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.navbar-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+}
+
+.navbar-container h1 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.navbar-container ul {
+  list-style: none;
+  display: flex;
+  gap: 1.2rem;
+}
+
+.navbar-container a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.navbar-container a:hover {
+  color: #cce6ff;
+}
+
+/* Dark Mode Toggle */
+#darkModeToggle {
+  background: none;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  color: #fff;
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 4px 8px;
+  transition: transform 0.2s, background 0.2s;
+}
+
+#darkModeToggle:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+/* Dark Mode */
+body.dark-mode {
+  background: linear-gradient(135deg, #1c1c1c, #2c2c2c);
+  color: #f0f0f0;
+}
+
+body.dark-mode h1,
+body.dark-mode h2 {
+  color: #f0f0f0;
+}
+
+body.dark-mode .expander {
+  background: #2b2b2b;
+  border-color: #444;
+}
+
+body.dark-mode .expander h3 {
+  background: linear-gradient(135deg, #3a3a3a, #444);
+  color: #f0f0f0;
+}
+
+body.dark-mode .expander h3:hover {
+  background: linear-gradient(135deg, #444, #555);
+}
+
+body.dark-mode .table-container {
+  border-color: #444;
+}
+
+body.dark-mode table {
+  background: #3a3a3a;
+  color: #ddd;
+}
+
+body.dark-mode th {
+  background: linear-gradient(to right, #555, #444);
+  color: #eee;
+}
+
+body.dark-mode td {
+  background: #3a3a3a;
+  border-bottom: 1px solid #555;
+}
+
+body.dark-mode tr:hover td {
+  background: #444;
+}
+
+body.dark-mode button {
+  background: linear-gradient(135deg, #444, #222);
+  color: #ddd;
+}
+
+body.dark-mode button:hover {
+  background: linear-gradient(135deg, #555, #333);
+}
+
+body.dark-mode #scoreValue {
+  color: #80bfff;
+}
+
+body.dark-mode svg {
+  color: #f0f0f0;
+}
+
+body.dark-mode #tooltip {
+  background: #fff;
+  color: #333;
+  border-color: #555;
+}
+
+/* Reduced gap below dreg-filters */
+#dreg-filters {
+  margin-bottom: 0.25px;
+}
