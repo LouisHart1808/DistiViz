@@ -1,3 +1,4 @@
+const regionalMapSection = document.getElementById('regionalMapSection');
 const navApps = document.getElementById('nav-apps');
 const navDregs = document.getElementById('nav-dregs');
 const appFilters = document.getElementById('app-filters');
@@ -25,12 +26,14 @@ function setActiveTab(tab) {
     dregFilters.style.display = 'none';
     dregBreakdownSection.style.display = 'none';
     distributorBarChartContainer.style.display = 'none';
+    regionalMapSection.style.display = 'none';
   } else if (tab === 'dregs') {
     navDregs.classList.add("active");
     appFilters.style.display = 'none';
     dregFilters.style.display = 'block';
     dregBreakdownSection.style.display = 'block';
     distributorBarChartContainer.style.display = 'block';
+    regionalMapSection.style.display = 'block';
   }
 }
 
