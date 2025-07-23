@@ -22,8 +22,32 @@
 
   <!-- DREG Chart: Total per Distributor -->
   <section id="distributorBarChartContainer" style="margin: 20px 0; display: none;">
-    <h2>Total Number of DREGs per Distributor</h2>
+    <h2>Aggregated Total Data of Distributors</h2>
+    <h3>Total Number of DREGs per Distributor</h3>
     <div id="distributorBarChart"></div>
+    <h3>Total DREG Rev 3y per Distributor</h3>
+    <div id="revenueBarChart"></div>
+
+    <!-- Annual DREGs Section -->
+    <section id="annualDregsSection" style="margin-top: 40px;">
+      <h2>Annual DREGs of Distributor</h2>
+      <div id="annualFilterRow" style="display: flex; flex-direction: row; align-items: center; gap: 20px; flex-wrap: wrap; margin-bottom: 16px;">
+        <label style="display: flex; flex-direction: column;">
+          Select Distributor:
+          <select id="annualDistributorSelect"></select>
+        </label>
+        <label style="display: flex; flex-direction: column;">
+          Select Segment:
+          <select id="annualSegmentSelect"></select>
+        </label>
+        <label style="display: flex; flex-direction: column;">
+          Select Region Resale Customer:
+          <select id="annualRegionSelect"></select>
+        </label>
+      </div>
+      <div id="annualDregsChart"></div>
+      <div id="annualRevenueChart"></div>
+    </section>
   </section>
 
   <!-- Applications Filters -->
@@ -45,7 +69,7 @@
 
   <!-- DREG Filters -->
   <section id="dreg-filters" style="display: none;">
-    <h2>DREG Filters</h2>
+    <h2>DREGs Between Approval and Campaign Dates</h2>
 
     <label for="distributorSelect">Distributor:</label>
     <select id="distributorSelect"></select>
