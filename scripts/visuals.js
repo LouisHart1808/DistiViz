@@ -243,3 +243,71 @@ export function renderGroupedTables({
     });
   });
 }
+
+
+/**
+ * Render a choropleth map to visualize DREG Count or Revenue by country
+ * @param {Object} params
+ * @param {string} params.containerId - The DOM element id to render into
+ * @param {Array} params.data - Array of { country, value }
+ * @param {string} params.metricLabel - Label for the metric ("DREG Count" or "Revenue")
+ */
+export async function renderChoroplethMap({ containerId, data, metricLabel }) {
+  const width = 1000;
+  const height = 500;
+
+  const svg = d3.select(`#${containerId}`)
+    .html('')
+    .append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+  const tooltip = d3.select("#tooltip");
+
+  // World GeoJSON
+  const world = await d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json");
+  const countries = topojson.feature(world, world.objects.countries).features;
+
+  const projection = d3.geoNaturalEarth1().fitSize([width, height], { type: "Sphere" });
+  const path = d3.geoPath().projection(projection);
+
+  const maxValue = d3.max(data, d => d.value);
+  const color = d3.scaleSequential()
+    .domain([0, maxValue])
+    .interpolator(d3.interpolateYlOrRd);
+
+  // Normalize country names to uppercase for robust matching
+  const countryMap = new Map(data.map(d => [d.country.toUpperCase(), d.value]));
+  // Fallback alias: ensure UNITED STATES is matched if UNITED STATES OF AMERICA exists
+  if (!countryMap.has("UNITED STATES OF AMERICA") && countryMap.has("UNITED STATES")) {
+    countryMap.set("UNITED STATES OF AMERICA", countryMap.get("UNITED STATES"));
+  }
+  const mapCountryNames = new Set(countries.map(d => d.properties.name.toUpperCase()));
+  const unmatched = [...countryMap.keys()].filter(name => !mapCountryNames.has(name));
+  console.warn("Countries in data not matched on map:", unmatched);
+
+  svg.append("g")
+    .selectAll("path")
+    .data(countries)
+    .enter()
+    .append("path")
+    .attr("d", path)
+    .attr("fill", d => {
+      const name = d.properties.name.toUpperCase();
+      return countryMap.has(name) ? color(countryMap.get(name)) : "#eee";
+    })
+    .attr("stroke", "#999")
+    .on("mouseover", function (event, d) {
+      const name = d.properties.name.toUpperCase();
+      const value = countryMap.get(name);
+      if (value != null) {
+        tooltip.style("display", "block")
+          .html(`<strong>${d.properties.name}</strong><br/>${metricLabel}: ${d3.format(",")(value)}`);
+      }
+    })
+    .on("mousemove", event => {
+      tooltip.style("left", (event.pageX + 10) + "px")
+        .style("top", (event.pageY - 30) + "px");
+    })
+    .on("mouseout", () => tooltip.style("display", "none"));
+}
