@@ -5,6 +5,7 @@
   <title>DistiViz</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
 </head>
 <body>
 
@@ -19,6 +20,29 @@
       <button id="darkModeToggle" aria-label="Toggle Dark Mode">🌙</button>
     </div>
   </nav>
+
+  <!-- Regional Map Overview -->
+  <section id="regionalMapSection" style="margin: 30px 0;">
+    <h2>Geographic Distribution of DREGs</h2>
+    <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+      <label>
+        View Metric:
+        <select id="mapMetricSelect">
+          <option value="DREGs">DREG Count</option>
+          <option value="Revenue">Total Revenue (3y)</option>
+        </select>
+      </label>
+      <label>
+        Start Year:
+        <select id="mapStartYearSelect"></select>
+      </label>
+      <label>
+        End Year:
+        <select id="mapEndYearSelect"></select>
+      </label>
+    </div>
+    <div id="regionalMap" style="margin-top: 20px;"></div>
+  </section>
 
   <!-- DREG Chart: Total per Distributor -->
   <section id="distributorBarChartContainer" style="margin: 20px 0; display: none;">
@@ -100,6 +124,7 @@
       <option value="Segment">Segment</option>
     </select>
     <div id="dregBreakdownChart"></div>
+    <div id="revenueBreakdownChart"></div>
   </section>
 
   <!-- Shared Bar Chart -->
