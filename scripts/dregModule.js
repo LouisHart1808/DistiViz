@@ -1,5 +1,5 @@
 import { loadCSV, excelDateToDate, formatDate, downloadCSV, applyFilters } from './utils.js';
-import { renderGroupedTables, renderBarChart } from './visuals.js';
+import { renderGroupedTables, renderBarChart, renderChoroplethMap } from './visuals.js';
 
 export async function loadDregModule() {
   const data = await loadCSV('data/DistiDregs.csv', d => {
@@ -24,6 +24,23 @@ export async function loadDregModule() {
   const approvalInput = d3.select("#approvalDate");
   const campaignInput = d3.select("#campaignDate");
   const hasCampaignCheckbox = d3.select("#hasCampaignDate");
+
+  const mapMetricSelect = d3.select("#mapMetricSelect");
+  const mapStartYearSelect = d3.select("#mapStartYearSelect");
+  const mapEndYearSelect = d3.select("#mapEndYearSelect");
+
+  const allYears = Array.from(new Set(data
+    .map(d => d["Approval Date Raw"])
+    .filter(d => d instanceof Date && !isNaN(d))
+    .map(d => d.getFullYear()))).sort((a, b) => a - b);
+
+  mapStartYearSelect.selectAll("option")
+    .data(allYears).enter().append("option").text(d => d);
+  mapEndYearSelect.selectAll("option")
+    .data(allYears).enter().append("option").text(d => d);
+
+  mapStartYearSelect.property("value", allYears[0]);
+  mapEndYearSelect.property("value", allYears[allYears.length - 1]);
 
   const distributorList = Array.from(new Set(data.map(d => d.Distributor).filter(Boolean))).sort();
   distributorSelect.selectAll("option").data(distributorList).enter().append("option").text(d => d);
@@ -198,6 +215,24 @@ export async function loadDregModule() {
       tooltipLabel: 'DREGs'
     });
 
+    // Render revenue breakdown chart below DREGs histogram
+    const revenueBreakdownData = d3.rollups(
+      filtered,
+      v => d3.sum(v, d => +d["DREG Rev 3y"] || 0),
+      d => d[breakdownDim]
+    )
+      .map(([key, Count]) => ({ key: key || 'N/A', Count }))
+      .sort((a, b) => d3.descending(a.Count, b.Count));
+
+    renderBarChart({
+      containerId: 'revenueBreakdownChart',
+      data: revenueBreakdownData,
+      xKey: 'key',
+      yKey: 'Count',
+      tooltipLabel: 'Total Revenue (3y)',
+      formatLabelFn: d3.format(".3~s")
+    });
+
     d3.select("#breakdownSelect").on("change", update);
 
     const container = d3.select("#results").html("");
@@ -257,11 +292,70 @@ export async function loadDregModule() {
     renderSelectedSegmentTable();
   }
 
+  function updateChoroplethMap() {
+    const metric = mapMetricSelect.property("value");
+    const startYear = +mapStartYearSelect.property("value");
+    const endYear = +mapEndYearSelect.property("value");
+
+    const filtered = data.filter(d =>
+      d["Approval Date Raw"] instanceof Date &&
+      !isNaN(d["Approval Date Raw"]) &&
+      d["Approval Date Raw"].getFullYear() >= startYear &&
+      d["Approval Date Raw"].getFullYear() <= endYear
+    );
+
+    const countryNameAliases = {
+      "KOREA, REPUBLIC OF": "South Korea",
+      "UNITED STATES": "United States",
+      "VIET NAM": "Vietnam",
+      "HONG KONG (CHINA)": "Hong Kong",
+      "TAIWAN": "Taiwan",
+      "COSTA RICA": "Costa Rica",
+      "CROATIA": "Croatia",
+      "SLOVAKIA": "Slovakia",
+      "CZECH REPUBLIC": "Czechia",
+      "RUSSIAN FEDERATION": "Russia",
+      "IRAN, ISLAMIC REPUBLIC OF": "Iran",
+      "SYRIAN ARAB REPUBLIC": "Syria",
+      "BOLIVIA, PLURINATIONAL STATE OF": "Bolivia",
+      "TANZANIA, UNITED REPUBLIC OF": "Tanzania",
+      "MOLDOVA, REPUBLIC OF": "Moldova",
+      "MACEDONIA, THE FORMER YUGOSLAV REPUBLIC OF": "North Macedonia",
+      "PALESTINE, STATE OF": "Palestine",
+      "MYANMAR": "Myanmar",
+      "LIBYAN ARAB JAMAHIRIYA": "Libya"
+    };
+
+    const grouped = d3.rollups(
+      filtered,
+      metric === "Revenue"
+        ? v => d3.sum(v, d => +d["DREG Rev 3y"] || 0)
+        : v => v.length,
+      d => d["Country Resale Customer"]
+    )
+      .map(([country, value]) => ({
+        country: countryNameAliases[country] || country,
+        value
+      }))
+      .filter(d => !!d.country);
+
+    renderChoroplethMap({
+      containerId: "regionalMap",
+      data: grouped,
+      metricLabel: metric === "Revenue" ? "Total Revenue (3y)" : "DREG Count"
+    });
+  }
+
   approvalInput.on("change", update);
   campaignInput.on("change", update);
   hasCampaignCheckbox.on("change", update);
   distributorSelect.on("change", update);
   regStatusSelect.on("change", update);
 
+  mapMetricSelect.on("change", updateChoroplethMap);
+  mapStartYearSelect.on("change", updateChoroplethMap);
+  mapEndYearSelect.on("change", updateChoroplethMap);
+
   update();
+  updateChoroplethMap();
 }
