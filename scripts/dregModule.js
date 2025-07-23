@@ -1,49 +1,154 @@
-import { loadCSV, excelDateToDate, formatDate } from './loader.js';
-import { applyFilters } from './filters.js';
-import { renderGroupedTables } from './tables.js';
-import { renderBarChart } from './charts.js';
-import { downloadCSV } from './exporter.js';
+import { loadCSV, excelDateToDate, formatDate, downloadCSV, applyFilters } from './utils.js';
+import { renderGroupedTables, renderBarChart } from './visuals.js';
 
 export async function loadDregModule() {
   const data = await loadCSV('data/DistiDregs.csv', d => {
-    d["Registration Date Raw"] = excelDateToDate(+d["Registration Date"]);
-    d["Approval Date Raw"] = excelDateToDate(+d["Approval Date"]);
-    d["Registration Date"] = formatDate(d["Registration Date Raw"]);
-    d["Approval Date"] = formatDate(d["Approval Date Raw"]);
-    return d;
+    const approvalRaw = new Date(d["Approval Date"]);
+    const registrationRaw = new Date(d["Registration Date"]);
+    return {
+      ...d,
+      "Approval Date Raw": approvalRaw instanceof Date && !isNaN(approvalRaw) ? approvalRaw : null,
+      "Registration Date Raw": registrationRaw instanceof Date && !isNaN(registrationRaw) ? registrationRaw : null,
+      "Approval Date": formatDate(approvalRaw),
+      "Registration Date": formatDate(registrationRaw),
+      "DREG Rev 3y": +d["DREG Rev 3y"] || 0
+    };
   });
 
+  const distributorBarChart = d3.select("#distributorBarChart");
+  const annualDistributorSelect = d3.select("#annualDistributorSelect");
+  const annualSegmentSelect = d3.select("#annualSegmentSelect");
+  const annualRegionSelect = d3.select("#annualRegionSelect");
   const distributorSelect = d3.select("#distributorSelect");
   const regStatusSelect = d3.select("#regStatusSelect");
   const approvalInput = d3.select("#approvalDate");
   const campaignInput = d3.select("#campaignDate");
   const hasCampaignCheckbox = d3.select("#hasCampaignDate");
 
-  distributorSelect.selectAll("option")
-    .data([...new Set(data.map(d => d.Distributor))].sort())
-    .enter().append("option").text(d => d);
+  const distributorList = Array.from(new Set(data.map(d => d.Distributor).filter(Boolean))).sort();
+  distributorSelect.selectAll("option").data(distributorList).enter().append("option").text(d => d);
+  annualDistributorSelect.selectAll("option").data(distributorList).enter().append("option").text(d => d);
+  annualDistributorSelect.property("value", distributorList[0]);
 
   regStatusSelect.selectAll("option")
-    .data(["All", ...new Set(data.map(d => d["Reg Status"]))].sort())
+    .data(["All", ...Array.from(new Set(data.map(d => d["Reg Status"]).filter(Boolean))).sort()])
     .enter().append("option").text(d => d);
 
-  function renderDistributorBarChart() {
-    const counts = d3.rollups(data, v => v.length, d => d.Distributor)
-      .map(([Distributor, Count]) => ({ Distributor, Count }))
-      .sort((a, b) => d3.descending(a.Count, b.Count));
+  const distiCounts = d3.rollups(data, v => v.length, d => d.Distributor)
+    .map(([Distributor, Count]) => ({ Distributor, Count }))
+    .sort((a, b) => d3.descending(a.Count, b.Count));
+
+  renderBarChart({
+    containerId: "distributorBarChart",
+    data: distiCounts,
+    xKey: "Distributor",
+    yKey: "Count",
+    tooltipLabel: "DREGs"
+  });
+  
+  const shortFormat = d3.format(".3~s");
+
+  const revenueByDistributor = d3.rollups(
+    data,
+    v => d3.sum(v, d => +d["DREG Rev 3y"] || 0),
+    d => d.Distributor
+  )
+    .map(([Distributor, Revenue]) => ({ Distributor, Count: Revenue }))
+    .sort((a, b) => d3.descending(a.Count, b.Count));
+  
+  renderBarChart({
+    containerId: "revenueBarChart",
+    data: revenueByDistributor,
+    xKey: "Distributor",
+    yKey: "Count",
+    tooltipLabel: "Total Revenue (3y)",
+    formatLabelFn: shortFormat
+  });
+
+  function renderAnnualChart(distributor, segment, region) {
+    const filtered = data.filter(d =>
+      d.Distributor === distributor &&
+      d["Approval Date Raw"] instanceof Date &&
+      !isNaN(d["Approval Date Raw"]) &&
+      (segment === "All Segment" || d.Segment === segment) &&
+      (region === "All Region" || d["Region Resale Customer"] === region)
+    );
+
+    const byYear = d3.rollups(
+      filtered,
+      v => v.length,
+      d => d["Approval Date Raw"].getFullYear()
+    )
+      .filter(([y]) => !isNaN(y))
+      .map(([Year, Count]) => ({ Year, Count }))
+      .sort((a, b) => a.Year - b.Year);
 
     renderBarChart({
-      containerId: "distributorBarChart",
-      data: counts,
-      xKey: "Distributor",
+      containerId: "annualDregsChart",
+      data: byYear,
+      xKey: "Year",
       yKey: "Count",
-      tooltipLabel: "DREGs",
-      onClickBar: (d) => {
-        distributorSelect.property("value", d.Distributor);
-        update();
-      }
+      tooltipLabel: "DREGs"
+    });
+
+    // Revenue per year
+    const revByYear = d3.rollups(
+      filtered,
+      v => d3.sum(v, d => +d["DREG Rev 3y"] || 0),
+      d => d["Approval Date Raw"].getFullYear()
+    )
+      .filter(([y]) => !isNaN(y))
+      .map(([Year, Count]) => ({ Year, Count }))
+      .sort((a, b) => a.Year - b.Year);
+
+    renderBarChart({
+      containerId: "annualRevenueChart",
+      data: revByYear,
+      xKey: "Year",
+      yKey: "Count",
+      tooltipLabel: "Total Revenue (3y)",
+      formatLabelFn: d3.format(".3~s")
     });
   }
+
+  function triggerAnnualUpdate() {
+    const distributor = annualDistributorSelect.property("value");
+
+    const filtered = data.filter(d => d.Distributor === distributor && d["Approval Date Raw"]);
+
+    const segments = Array.from(new Set(filtered.map(d => d.Segment).filter(Boolean))).sort();
+    annualSegmentSelect.selectAll("option").remove();
+    annualSegmentSelect.selectAll("option")
+      .data(["All Segment", ...segments])
+      .enter().append("option").attr("value", d => d).text(d => d);
+
+    const regions = Array.from(new Set(filtered.map(d => d["Region Resale Customer"]).filter(Boolean))).sort();
+    annualRegionSelect.selectAll("option").remove();
+    annualRegionSelect.selectAll("option")
+      .data(["All Region", ...regions])
+      .enter().append("option").attr("value", d => d).text(d => d);
+
+    renderAnnualChart(distributor, "All Segment", "All Region");
+
+    annualSegmentSelect.on("change", () => {
+      renderAnnualChart(
+        annualDistributorSelect.property("value"),
+        annualSegmentSelect.property("value"),
+        annualRegionSelect.property("value")
+      );
+    });
+
+    annualRegionSelect.on("change", () => {
+      renderAnnualChart(
+        annualDistributorSelect.property("value"),
+        annualSegmentSelect.property("value"),
+        annualRegionSelect.property("value")
+      );
+    });
+  }
+
+  annualDistributorSelect.on("change", triggerAnnualUpdate);
+  triggerAnnualUpdate();
 
   function update() {
     const selectedDistributor = distributorSelect.property("value");
@@ -57,17 +162,17 @@ export async function loadDregModule() {
       return;
     }
 
-    let filtered = applyFilters(data, {
+    const filtered = applyFilters(data, {
       Distributor: selectedDistributor,
       "Reg Status": selectedRegStatus
     }, d => {
       const approval = d["Approval Date Raw"];
-      if (!approval) return false;
-      return approval <= approvalDate && (!useCampaign || approval >= campaignDate);
+      return approval &&
+        approval <= approvalDate &&
+        (!useCampaign || approval >= campaignDate);
     });
 
     d3.select("#summary").html(`
-      <h2>Summary Metrics</h2>
       <p>Distributor: <strong>${selectedDistributor}</strong></p>
       <p>Reg Status: <strong>${selectedRegStatus === "All" ? "Any" : selectedRegStatus}</strong></p>
       <p>Campaign Date from: <strong>${useCampaign ? formatDate(campaignDate) : "Not Used"}</strong></p>
@@ -96,8 +201,7 @@ export async function loadDregModule() {
     d3.select("#breakdownSelect").on("change", update);
 
     const container = d3.select("#results").html("");
-
-    container.append("h2").text("Disti's DREGs by Region Resale Customer");
+    container.append("h3").text("Disti's DREGs by Region Resale Customer");
 
     renderGroupedTables({
       container,
@@ -105,15 +209,15 @@ export async function loadDregModule() {
       columns: [
         "Subregion Resp", "Country Resale Customer", "Resale Customer",
         "Segment", "Market Segment", "Market Application", "DIV", "PL",
-        "Project Status", "Reg Status", "Registration Date", "Approval Date"
+        "Project Status", "Reg Status", "Registration Date", "Approval Date", "DREG Rev 3y"
       ],
       groupLabelPrefix: '',
       distributor: selectedDistributor,
       defaultCollapsed: true
     });
 
-    const segmentContainer = container.append("div");
-    segmentContainer.append("h2").text("Disti's DREGs by Segment");
+    const segmentContainer = container.append("div").style("margin-top", "40px");
+    segmentContainer.append("h3").text("Disti's DREGs by Segment");
 
     const segmentList = [...new Set(filtered.map(d => d.Segment))].sort();
     const segmentSelect = segmentContainer.append("label")
@@ -128,7 +232,7 @@ export async function loadDregModule() {
       .attr("value", d => d)
       .text(d => d);
 
-    const segmentTableWrapper = segmentContainer.append("div").attr("id", "segmentTable");
+    const segmentTableWrapper = segmentContainer.append("div").attr("id", "segmentTable").style("margin-top", "2px");
 
     function renderSelectedSegmentTable() {
       segmentTableWrapper.html("");
@@ -141,7 +245,7 @@ export async function loadDregModule() {
         columns: [
           "Subregion Resp", "Region Resale Customer", "Country Resale Customer",
           "Resale Customer", "Market Segment", "Market Application", "DIV", "PL",
-          "Project Status", "Reg Status", "Registration Date", "Approval Date"
+          "Project Status", "Reg Status", "Registration Date", "Approval Date", "DREG Rev 3y"
         ],
         groupLabelPrefix: '',
         distributor: selectedDistributor,
@@ -159,6 +263,5 @@ export async function loadDregModule() {
   distributorSelect.on("change", update);
   regStatusSelect.on("change", update);
 
-  renderDistributorBarChart();
   update();
 }
