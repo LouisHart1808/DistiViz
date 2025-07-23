@@ -114,8 +114,8 @@ input[type="date"]:focus {
 .expander {
   margin-top: 24px;
   border-radius: 8px;
-  background: #f5f7fa; /* Restored lighter background */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+  background: #f5f7fa;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   border: 1px solid #ddd;
   overflow: hidden;
   width: 100%;
@@ -125,11 +125,11 @@ input[type="date"]:focus {
   margin: 0;
   cursor: pointer;
   font-size: 16px;
-  background: #e6ecf3; /* Restored header color */
+  background: #e6ecf3;
   padding: 12px 16px;
   border-bottom: 1px solid #ddd;
   font-weight: 600;
-  flex: 1; /* Make sure the title fills available space */
+  flex: 1;
   transition: background 0.3s;
 }
 
@@ -212,6 +212,15 @@ svg {
   z-index: 10;
 }
 
+/* Bar chart label fill color */
+.bar-label {
+  fill: #333;
+}
+
+body.dark-mode .bar-label {
+  fill: #eee;
+}
+
 /* Buttons */
 button {
   background: linear-gradient(135deg, #0077cc, #005fa3);
@@ -270,6 +279,12 @@ nav {
 
 .navbar-container a:hover {
   color: #cce6ff;
+}
+
+.navbar-container a.active {
+  text-decoration: underline;
+  font-weight: 600;
+  border-bottom: 2px solid #cce6ff;
 }
 
 /* Dark Mode Toggle */
@@ -360,7 +375,30 @@ body.dark-mode #tooltip {
   border-color: #555;
 }
 
-/* Reduced gap below dreg-filters */
 #dreg-filters {
   margin-bottom: 0.25px;
+}
+
+.bar-label-revenue {
+  fill: #444;
+  font-weight: 500;
+  font-size: 11px;
+}
+
+body.dark-mode .bar-label-revenue {
+  fill: #ccc;
+}
+
+th .sort-icon {
+  font-size: 11px;
+  margin-left: 4px;
+  color: #fff;
+}
+
+th:hover .sort-icon {
+  color: #eee;
+}
+
+body.dark-mode th .sort-icon {
+  color: #ddd;
 }
