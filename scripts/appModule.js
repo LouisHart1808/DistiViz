@@ -1,8 +1,5 @@
-import { loadCSV } from './loader.js';
-import { applyFilters } from './filters.js';
-import { renderGroupedTables } from './tables.js';
-import { renderBarChart } from './charts.js';
-import { downloadCSV } from './exporter.js';
+import { loadCSV, downloadCSV, applyFilters } from './utils.js';
+import { renderGroupedTables, renderBarChart } from './visuals.js';
 
 export async function loadAppModule() {
   const data = await loadCSV('data/DistiApps.csv');
