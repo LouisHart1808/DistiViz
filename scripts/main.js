@@ -6,7 +6,6 @@ const dregFilters = document.getElementById('dreg-filters');
 const dregBreakdownSection = document.getElementById('dreg-breakdown-section');
 const distributorBarChartContainer = document.getElementById('distributorBarChartContainer');
 
-// Utility: Clear reusable sections
 function clearContent() {
   document.getElementById('summary').innerHTML = '';
   document.getElementById('barChart').innerHTML = '';
@@ -15,7 +14,6 @@ function clearContent() {
   document.getElementById('distributorBarChart').innerHTML = '';
 }
 
-// Active tab logic
 function setActiveTab(tab) {
   const navLinks = document.querySelectorAll(".navbar-container a");
   navLinks.forEach(link => link.classList.remove("active"));
@@ -27,6 +25,7 @@ function setActiveTab(tab) {
     dregBreakdownSection.style.display = 'none';
     distributorBarChartContainer.style.display = 'none';
     regionalMapSection.style.display = 'none';
+    document.getElementById("topCountriesChartSection").style.display = 'none';
   } else if (tab === 'dregs') {
     navDregs.classList.add("active");
     appFilters.style.display = 'none';
@@ -34,10 +33,10 @@ function setActiveTab(tab) {
     dregBreakdownSection.style.display = 'block';
     distributorBarChartContainer.style.display = 'block';
     regionalMapSection.style.display = 'block';
+    document.getElementById("topCountriesChartSection").style.display = 'block';
   }
 }
 
-// Navbar tab events
 navApps.addEventListener('click', async (e) => {
   e.preventDefault();
   setActiveTab('apps');
@@ -54,12 +53,10 @@ navDregs.addEventListener('click', async (e) => {
   loadDregModule();
 });
 
-// Dark mode toggle
 document.getElementById('darkModeToggle').addEventListener('click', () => {
   document.body.classList.toggle('dark-mode');
 });
 
-// Load default tab on startup
 window.addEventListener('DOMContentLoaded', async () => {
   setActiveTab('apps');
   const { loadAppModule } = await import('./appModule.js');
