@@ -55,8 +55,12 @@ export async function loadDregModule() {
     .map(([Distributor, Count]) => ({ Distributor, Count }))
     .sort((a, b) => d3.descending(a.Count, b.Count));
 
+  const distiContainer = d3.select("#distributorBarChart").html("");
+  const distiCard = distiContainer.append("div").attr("class", "map-card");
+  distiCard.append("h3").attr("class", "map-title").text("Total Number of DREGs per Distributor");
+  distiCard.append("div").attr("id", "distributorBarChartInner");
   renderBarChart({
-    containerId: "distributorBarChart",
+    containerId: "distributorBarChartInner",
     data: distiCounts,
     xKey: "Distributor",
     yKey: "Count",
@@ -73,8 +77,12 @@ export async function loadDregModule() {
     .map(([Distributor, Revenue]) => ({ Distributor, Count: Revenue }))
     .sort((a, b) => d3.descending(a.Count, b.Count));
   
+  const revContainer = d3.select("#revenueBarChart").html("");
+  const revCard = revContainer.append("div").attr("class", "map-card");
+  revCard.append("h3").attr("class", "map-title").text("Total Revenue per Distributor (3y)");
+  revCard.append("div").attr("id", "revenueBarChartInner");
   renderBarChart({
-    containerId: "revenueBarChart",
+    containerId: "revenueBarChartInner",
     data: revenueByDistributor,
     xKey: "Distributor",
     yKey: "Count",
@@ -100,8 +108,12 @@ export async function loadDregModule() {
       .map(([Year, Count]) => ({ Year, Count }))
       .sort((a, b) => a.Year - b.Year);
 
+    const dregContainer = d3.select("#annualDregsChart").html("");
+    const dregCard = dregContainer.append("div").attr("class", "map-card");
+    dregCard.append("h3").attr("class", "map-title").text("Annual DREG Count");
+    dregCard.append("div").attr("id", "annualDregsChartInner");
     renderBarChart({
-      containerId: "annualDregsChart",
+      containerId: "annualDregsChartInner",
       data: byYear,
       xKey: "Year",
       yKey: "Count",
@@ -118,8 +130,12 @@ export async function loadDregModule() {
       .map(([Year, Count]) => ({ Year, Count }))
       .sort((a, b) => a.Year - b.Year);
 
+    const revContainer = d3.select("#annualRevenueChart").html("");
+    const revCard = revContainer.append("div").attr("class", "map-card");
+    revCard.append("h3").attr("class", "map-title").text("Annual Revenue (3y)");
+    revCard.append("div").attr("id", "annualRevenueChartInner");
     renderBarChart({
-      containerId: "annualRevenueChart",
+      containerId: "annualRevenueChartInner",
       data: revByYear,
       xKey: "Year",
       yKey: "Count",
@@ -131,15 +147,15 @@ export async function loadDregModule() {
   function triggerAnnualUpdate() {
     const distributor = annualDistributorSelect.property("value");
 
-    const filtered = data.filter(d => d.Distributor === distributor && d["Approval Date Raw"]);
-
-    const segments = Array.from(new Set(filtered.map(d => d.Segment).filter(Boolean))).sort();
+    // Populate segments from the full dataset, not filtered by distributor
+    const segments = Array.from(new Set(data.map(d => d.Segment).filter(Boolean))).sort();
     annualSegmentSelect.selectAll("option").remove();
     annualSegmentSelect.selectAll("option")
       .data(["All Segment", ...segments])
       .enter().append("option").attr("value", d => d).text(d => d);
 
-    const regions = Array.from(new Set(filtered.map(d => d["Region Resale Customer"]).filter(Boolean))).sort();
+    // Populate regions from the full dataset, not filtered by distributor
+    const regions = Array.from(new Set(data.map(d => d["Region Resale Customer"]).filter(Boolean))).sort();
     annualRegionSelect.selectAll("option").remove();
     annualRegionSelect.selectAll("option")
       .data(["All Region", ...regions])
@@ -207,12 +223,16 @@ export async function loadDregModule() {
       .map(([key, Count]) => ({ key: key || 'N/A', Count }))
       .sort((a, b) => d3.descending(a.Count, b.Count));
 
+    const breakdownDreg = d3.select("#dregBreakdownChart").html("");
+    const breakdownCard = breakdownDreg.append("div").attr("class", "map-card");
+    breakdownCard.append("h3").attr("class", "map-title").text(`DREGs by ${breakdownDim}`);
+    breakdownCard.append("div").attr("id", "dregBreakdownChartInner");
     renderBarChart({
-      containerId: 'dregBreakdownChart',
+      containerId: "dregBreakdownChartInner",
       data: breakdownData,
-      xKey: 'key',
-      yKey: 'Count',
-      tooltipLabel: 'DREGs'
+      xKey: "key",
+      yKey: "Count",
+      tooltipLabel: "DREGs"
     });
 
     // Render revenue breakdown chart below DREGs histogram
@@ -224,12 +244,16 @@ export async function loadDregModule() {
       .map(([key, Count]) => ({ key: key || 'N/A', Count }))
       .sort((a, b) => d3.descending(a.Count, b.Count));
 
+    const breakdownRevenue = d3.select("#revenueBreakdownChart").html("");
+    const revBreakCard = breakdownRevenue.append("div").attr("class", "map-card");
+    revBreakCard.append("h3").attr("class", "map-title").text(`Revenue by ${breakdownDim} (3y)`);
+    revBreakCard.append("div").attr("id", "revenueBreakdownChartInner");
     renderBarChart({
-      containerId: 'revenueBreakdownChart',
+      containerId: "revenueBreakdownChartInner",
       data: revenueBreakdownData,
-      xKey: 'key',
-      yKey: 'Count',
-      tooltipLabel: 'Total Revenue (3y)',
+      xKey: "key",
+      yKey: "Count",
+      tooltipLabel: "Total Revenue (3y)",
       formatLabelFn: d3.format(".3~s")
     });
 
@@ -343,6 +367,31 @@ export async function loadDregModule() {
       containerId: "regionalMap",
       data: grouped,
       metricLabel: metric === "Revenue" ? "Total Revenue (3y)" : "DREG Count"
+    });
+
+    // Top 10 countries by metric value
+    const topCountries = grouped
+      .filter(d => d.value > 0)
+      .sort((a, b) => d3.descending(a.value, b.value))
+      .slice(0, 10);
+
+    // Wrap Top 10 Countries bar chart in a card container
+    const chartContainer = d3.select("#topCountriesChart").html("");
+    const card = chartContainer.append("div").attr("class", "map-card");
+    card.append("h3")
+      .attr("class", "map-title")
+      .text("Top 10 Countries by " + (metric === "Revenue" ? "Total Revenue (3y)" : "DREG Count"));
+
+    card.append("div")
+      .attr("id", "topCountriesBar");
+
+    renderBarChart({
+      containerId: "topCountriesBar",
+      data: topCountries.map(d => ({ Country: d.country, Count: d.value })),
+      xKey: "Country",
+      yKey: "Count",
+      tooltipLabel: metric === "Revenue" ? "Total Revenue (3y)" : "DREGs",
+      formatLabelFn: d3.format(".3~s")
     });
   }
 
