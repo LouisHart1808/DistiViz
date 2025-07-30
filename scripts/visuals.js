@@ -6,6 +6,22 @@ export function renderBarChart({ containerId, data, xKey, yKey, tooltipLabel, on
   const height = 400;
   const margin = { top: 20, right: 20, bottom: 120, left: 75 };
 
+  // Early return if data is empty
+  if (!data.length) {
+    d3.select(`#${containerId}`).html('');
+    d3.select(`#${containerId}`)
+      .append("svg")
+      .attr("width", 1000)
+      .attr("height", 120)
+      .append("text")
+      .attr("x", 500)
+      .attr("y", 60)
+      .attr("text-anchor", "middle")
+      .style("font-size", "16px")
+      .text("No data available.");
+    return;
+  }
+
   d3.select(`#${containerId}`).html('');
   const svg = d3.select(`#${containerId}`)
     .append("svg")
@@ -86,8 +102,16 @@ export function renderGroupedTables({
   defaultCollapsed = true,
   colorByConfidence = false
 }) {
+  // Early return if groupedData is empty or has no rows
+  if (!groupedData || groupedData.size === 0 || Array.from(groupedData.values()).flat().length === 0) {
+    container.append("p")
+      .style("padding", "12px")
+      .style("font-size", "15px")
+      .text("No matching data to display.");
+    return;
+  }
+
   groupedData.forEach((rows, groupKey) => {
-    // Move sort state outside renderTable so it persists across re-renders
     let currentSortColumn = null;
     let currentSortOrder = 'asc';
     const expander = container.append("div").attr("class", "expander");
@@ -169,7 +193,6 @@ export function renderGroupedTables({
             currentSortOrder = 'asc';
           }
 
-          // Sort rows based on column type
           const isNumeric = displayedRows.some(row => !isNaN(+row[d]));
           rows.sort((a, b) => {
             const valA = isNumeric ? +a[d] : (a[d] || '').toString().toLowerCase();
@@ -244,7 +267,6 @@ export function renderGroupedTables({
   });
 }
 
-
 /**
  * Render a choropleth map to visualize DREG Count or Revenue by country
  * @param {Object} params
@@ -256,29 +278,39 @@ export async function renderChoroplethMap({ containerId, data, metricLabel }) {
   const width = 1000;
   const height = 500;
 
-  const svg = d3.select(`#${containerId}`)
-    .html('')
-    .append("svg")
+  const container = d3.select(`#${containerId}`).html('');
+
+  const card = container.append("div").attr("class", "map-card");
+  card.append("h3").text(metricLabel).attr("class", "map-title");
+
+  if (!data.length) {
+    card.append("p")
+      .style("padding", "16px")
+      .style("font-size", "16px")
+      .text("No map data available for the selected filters.");
+    return;
+  }
+
+  const svg = card.append("svg")
     .attr("width", width)
     .attr("height", height);
 
   const tooltip = d3.select("#tooltip");
 
-  // World GeoJSON
   const world = await d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json");
   const countries = topojson.feature(world, world.objects.countries).features;
 
   const projection = d3.geoNaturalEarth1().fitSize([width, height], { type: "Sphere" });
   const path = d3.geoPath().projection(projection);
 
+  const minValue = d3.min(data, d => d.value);
   const maxValue = d3.max(data, d => d.value);
-  const color = d3.scaleSequential()
-    .domain([0, maxValue])
-    .interpolator(d3.interpolateYlOrRd);
+  const color = d3.scaleSequentialLog()
+    .domain([Math.max(minValue, 1), maxValue])
+    .interpolator(d3.interpolateYlOrRd)
+    .clamp(true);
 
-  // Normalize country names to uppercase for robust matching
   const countryMap = new Map(data.map(d => [d.country.toUpperCase(), d.value]));
-  // Fallback alias: ensure UNITED STATES is matched if UNITED STATES OF AMERICA exists
   if (!countryMap.has("UNITED STATES OF AMERICA") && countryMap.has("UNITED STATES")) {
     countryMap.set("UNITED STATES OF AMERICA", countryMap.get("UNITED STATES"));
   }
@@ -297,7 +329,9 @@ export async function renderChoroplethMap({ containerId, data, metricLabel }) {
       return countryMap.has(name) ? color(countryMap.get(name)) : "#eee";
     })
     .attr("stroke", "#999")
+    .attr("stroke-width", 1)
     .on("mouseover", function (event, d) {
+      d3.select(this).transition().duration(150).attr("stroke-width", 2).attr("stroke", "#444");
       const name = d.properties.name.toUpperCase();
       const value = countryMap.get(name);
       if (value != null) {
@@ -309,5 +343,50 @@ export async function renderChoroplethMap({ containerId, data, metricLabel }) {
       tooltip.style("left", (event.pageX + 10) + "px")
         .style("top", (event.pageY - 30) + "px");
     })
-    .on("mouseout", () => tooltip.style("display", "none"));
+    .on("mouseout", function () {
+      d3.select(this).transition().duration(150).attr("stroke-width", 1).attr("stroke", "#999");
+      tooltip.style("display", "none");
+    });
+
+  const legendWidth = 300;
+  const legendHeight = 10;
+  const legendSteps = 10;
+  const stepDomain = d3.range(legendSteps + 1).map(i => 
+    Math.max(minValue, 1) * Math.pow(maxValue / Math.max(minValue, 1), i / legendSteps)
+  );
+
+  const legendContainer = card.append("div").attr("class", "map-legend");
+
+  const legendSvg = legendContainer.append("svg")
+    .attr("width", legendWidth)
+    .attr("height", 40);
+
+  const defs = legendSvg.append("defs");
+  const gradient = defs.append("linearGradient")
+    .attr("id", "legend-gradient")
+    .attr("x1", "0%").attr("x2", "100%")
+    .attr("y1", "0%").attr("y2", "0%");
+
+  gradient.selectAll("stop")
+    .data(stepDomain)
+    .enter().append("stop")
+    .attr("offset", (d, i) => `${(i / legendSteps) * 100}%`)
+    .attr("stop-color", d => color(d));
+
+  legendSvg.append("rect")
+    .attr("width", legendWidth)
+    .attr("height", legendHeight)
+    .attr("y", 0)
+    .style("fill", "url(#legend-gradient)");
+
+  const legendScale = d3.scaleLog()
+    .domain([Math.max(minValue, 1), maxValue])
+    .range([0, legendWidth]);
+
+  const axis = d3.axisBottom(legendScale).ticks(5, "~s");
+
+  legendSvg.append("g")
+    .attr("transform", `translate(0, ${legendHeight})`)
+    .call(axis)
+    .selectAll("text").style("font-size", "10px");
 }
