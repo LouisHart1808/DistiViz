@@ -13,23 +13,27 @@ export async function loadAppModule() {
     "Application List Light Application", "Lead DIV", "Confidence"
   ];
 
-  const regions = Array.from(new Set(data.map(d => d.Region))).sort();
+  const regions = Array.from(new Set(data.map(d => d.Region).filter(Boolean))).sort();
   regionSelect.selectAll('option')
-    .data(regions)
+    .data(["All", ...regions])
     .enter().append('option').text(d => d);
+  regionSelect.property("value", "All");
 
   const level3s = Array.from(new Set(data.map(d => d["System/Application Level III"]))).sort();
   level3Select.selectAll('option')
     .data(["All", ...level3s])
     .enter().append('option').text(d => d);
+  level3Select.property("value", "All");
 
   function update() {
     const region = regionSelect.property('value');
     const level3 = level3Select.property('value');
     const minScore = +scoreSlider.property('value');
 
-    const filtered = applyFilters(data, { Region: region }, d => {
-      return +d.Confidence >= minScore && (level3 === 'All' || d["System/Application Level III"] === level3);
+    const filtered = applyFilters(data, {}, d => {
+      return (region === 'All' || d.Region === region) &&
+             +d.Confidence >= minScore &&
+             (level3 === 'All' || d["System/Application Level III"] === level3);
     });
 
     const grouped = d3.group(filtered, d => d.Distributor);
@@ -46,8 +50,13 @@ export async function loadAppModule() {
     });
 
     const counts = Array.from(grouped, ([Distributor, values]) => ({ Distributor, Count: values.length }));
+    const barChartContainer = d3.select("#barChart").html("");
+    const barChartCard = barChartContainer.append("div").attr("class", "map-card");
+    barChartCard.append("h3").attr("class", "map-title").text("Applications by Distributor");
+    barChartCard.append("div").attr("id", "barChartInner");
+
     renderBarChart({
-      containerId: "barChart",
+      containerId: "barChartInner",
       data: counts,
       xKey: "Distributor",
       yKey: "Count",
