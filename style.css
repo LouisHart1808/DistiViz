@@ -402,3 +402,33 @@ th:hover .sort-icon {
 body.dark-mode th .sort-icon {
   color: #ddd;
 }
+
+.map-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  margin-top: 16px;
+}
+
+.map-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #333;
+}
+
+.map-legend {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+}
+
+body.dark-mode .map-card {
+  background: #2a2a2a;
+  box-shadow: 0 2px 10px rgba(255, 255, 255, 0.08);
+}
+
+body.dark-mode .map-title {
+  color: #f0f0f0;
+}
