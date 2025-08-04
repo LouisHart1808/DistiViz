@@ -1,4 +1,5 @@
-import { loadCSV, excelDateToDate, formatDate, downloadCSV, applyFilters } from './utils.js';
+// Import only the necessary utility functions (excelDateToDate was unused)
+import { loadCSV, formatDate, downloadCSV, applyFilters } from './utils.js';
 import { renderGroupedTables, renderBarChart, renderChoroplethMap } from './visuals.js';
 
 export async function loadDregModule() {
@@ -24,7 +25,6 @@ export async function loadDregModule() {
   const approvalInput = d3.select("#approvalDate");
   const campaignInput = d3.select("#campaignDate");
   const hasCampaignCheckbox = d3.select("#hasCampaignDate");
-
   const mapMetricSelect = d3.select("#mapMetricSelect");
   const mapStartYearSelect = d3.select("#mapStartYearSelect");
   const mapEndYearSelect = d3.select("#mapEndYearSelect");
@@ -34,22 +34,37 @@ export async function loadDregModule() {
     .filter(d => d instanceof Date && !isNaN(d))
     .map(d => d.getFullYear()))).sort((a, b) => a - b);
 
-  mapStartYearSelect.selectAll("option")
-    .data(allYears).enter().append("option").text(d => d);
-  mapEndYearSelect.selectAll("option")
-    .data(allYears).enter().append("option").text(d => d);
+  // Helper function to populate a dropdown with options
+  // target: d3 selection of <select>
+  // options: array of option values
+  // defaultValue: (optional) value to set as selected
+  // valueFn: (optional) function to get value attribute for each option
+  // textFn: (optional) function to get display text for each option
+  function populateDropdown(target, options, defaultValue, valueFn = d => d, textFn = d => d) {
+    target.selectAll("option").remove();
+    target.selectAll("option")
+      .data(options)
+      .enter()
+      .append("option")
+      .attr("value", valueFn)
+      .text(textFn);
+    if (defaultValue !== undefined) {
+      target.property("value", defaultValue);
+    }
+  }
 
-  mapStartYearSelect.property("value", allYears[0]);
-  mapEndYearSelect.property("value", allYears[allYears.length - 1]);
+  // Populate year selects for map filtering
+  populateDropdown(mapStartYearSelect, allYears, allYears[0]);
+  populateDropdown(mapEndYearSelect, allYears, allYears[allYears.length - 1]);
 
+  // Populate distributor selects
   const distributorList = Array.from(new Set(data.map(d => d.Distributor).filter(Boolean))).sort();
-  distributorSelect.selectAll("option").data(distributorList).enter().append("option").text(d => d);
-  annualDistributorSelect.selectAll("option").data(distributorList).enter().append("option").text(d => d);
-  annualDistributorSelect.property("value", distributorList[0]);
+  populateDropdown(distributorSelect, distributorList, distributorList[0]);
+  populateDropdown(annualDistributorSelect, distributorList, distributorList[0]);
 
-  regStatusSelect.selectAll("option")
-    .data(["All", ...Array.from(new Set(data.map(d => d["Reg Status"]).filter(Boolean))).sort()])
-    .enter().append("option").text(d => d);
+  // Populate Reg Status select (with "All" as the first option)
+  const regStatusOptions = ["All", ...Array.from(new Set(data.map(d => d["Reg Status"]).filter(Boolean))).sort()];
+  populateDropdown(regStatusSelect, regStatusOptions, regStatusOptions[0]);
 
   const distiCounts = d3.rollups(data, v => v.length, d => d.Distributor)
     .map(([Distributor, Count]) => ({ Distributor, Count }))
@@ -87,7 +102,7 @@ export async function loadDregModule() {
     xKey: "Distributor",
     yKey: "Count",
     tooltipLabel: "Total Revenue (3y)",
-    formatLabelFn: shortFormat
+    formatLabelFn: val => d3.format(".3~s")(val).replace("G", "B")
   });
 
   function renderAnnualChart(distributor, segment, region) {
@@ -140,29 +155,33 @@ export async function loadDregModule() {
       xKey: "Year",
       yKey: "Count",
       tooltipLabel: "Total Revenue (3y)",
-      formatLabelFn: d3.format(".3~s")
+      formatLabelFn: val => d3.format(".3~s")(val).replace("G", "B")
     });
   }
 
+  // Update annual chart and repopulate segment/region dropdowns when distributor changes
   function triggerAnnualUpdate() {
     const distributor = annualDistributorSelect.property("value");
 
-    // Populate segments from the full dataset, not filtered by distributor
+    // Populate segment dropdown with "All Segment" + all unique segments
     const segments = Array.from(new Set(data.map(d => d.Segment).filter(Boolean))).sort();
-    annualSegmentSelect.selectAll("option").remove();
-    annualSegmentSelect.selectAll("option")
-      .data(["All Segment", ...segments])
-      .enter().append("option").attr("value", d => d).text(d => d);
+    populateDropdown(
+      annualSegmentSelect,
+      ["All Segment", ...segments],
+      "All Segment"
+    );
 
-    // Populate regions from the full dataset, not filtered by distributor
+    // Populate region dropdown with "All Region" + all unique regions
     const regions = Array.from(new Set(data.map(d => d["Region Resale Customer"]).filter(Boolean))).sort();
-    annualRegionSelect.selectAll("option").remove();
-    annualRegionSelect.selectAll("option")
-      .data(["All Region", ...regions])
-      .enter().append("option").attr("value", d => d).text(d => d);
+    populateDropdown(
+      annualRegionSelect,
+      ["All Region", ...regions],
+      "All Region"
+    );
 
     renderAnnualChart(distributor, "All Segment", "All Region");
 
+    // Attach change listeners for dynamic chart update
     annualSegmentSelect.on("change", () => {
       renderAnnualChart(
         annualDistributorSelect.property("value"),
@@ -254,7 +273,7 @@ export async function loadDregModule() {
       xKey: "key",
       yKey: "Count",
       tooltipLabel: "Total Revenue (3y)",
-      formatLabelFn: d3.format(".3~s")
+      formatLabelFn: val => d3.format(".3~s")(val).replace("G", "B")
     });
 
     d3.select("#breakdownSelect").on("change", update);
@@ -279,17 +298,12 @@ export async function loadDregModule() {
     segmentContainer.append("h3").text("Disti's DREGs by Segment");
 
     const segmentList = [...new Set(filtered.map(d => d.Segment))].sort();
+    // Segment dropdown: use helper for consistency and maintainability
     const segmentSelect = segmentContainer.append("label")
       .text("Select Segment: ")
       .append("select")
       .attr("id", "segmentDropdown");
-
-    segmentSelect.selectAll("option")
-      .data(segmentList)
-      .enter()
-      .append("option")
-      .attr("value", d => d)
-      .text(d => d);
+    populateDropdown(segmentSelect, segmentList, segmentList[0]);
 
     const segmentTableWrapper = segmentContainer.append("div").attr("id", "segmentTable").style("margin-top", "2px");
 
@@ -332,22 +346,10 @@ export async function loadDregModule() {
       "KOREA, REPUBLIC OF": "South Korea",
       "UNITED STATES": "United States",
       "VIET NAM": "Vietnam",
-      "HONG KONG (CHINA)": "Hong Kong",
       "TAIWAN": "Taiwan",
       "COSTA RICA": "Costa Rica",
       "CROATIA": "Croatia",
       "SLOVAKIA": "Slovakia",
-      "CZECH REPUBLIC": "Czechia",
-      "RUSSIAN FEDERATION": "Russia",
-      "IRAN, ISLAMIC REPUBLIC OF": "Iran",
-      "SYRIAN ARAB REPUBLIC": "Syria",
-      "BOLIVIA, PLURINATIONAL STATE OF": "Bolivia",
-      "TANZANIA, UNITED REPUBLIC OF": "Tanzania",
-      "MOLDOVA, REPUBLIC OF": "Moldova",
-      "MACEDONIA, THE FORMER YUGOSLAV REPUBLIC OF": "North Macedonia",
-      "PALESTINE, STATE OF": "Palestine",
-      "MYANMAR": "Myanmar",
-      "LIBYAN ARAB JAMAHIRIYA": "Libya"
     };
 
     const grouped = d3.rollups(
@@ -391,7 +393,7 @@ export async function loadDregModule() {
       xKey: "Country",
       yKey: "Count",
       tooltipLabel: metric === "Revenue" ? "Total Revenue (3y)" : "DREGs",
-      formatLabelFn: d3.format(".3~s")
+      formatLabelFn: val => d3.format(".3~s")(val).replace("G", "B")
     });
   }
 
