@@ -1,4 +1,19 @@
 /**
+ * Tooltip utility functions
+ */
+function showTooltip(html, x, y) {
+  const tooltip = d3.select("#tooltip");
+  tooltip.style("display", "block")
+    .html(html)
+    .style("left", (x + 10) + "px")
+    .style("top", (y - 30) + "px");
+}
+
+function hideTooltip() {
+  d3.select("#tooltip").style("display", "none");
+}
+
+/**
  * Render a bar chart using D3
  */
 export function renderBarChart({ containerId, data, xKey, yKey, tooltipLabel, onClickBar, formatLabelFn = null }) {
@@ -50,8 +65,6 @@ export function renderBarChart({ containerId, data, xKey, yKey, tooltipLabel, on
     .attr("transform", `translate(${margin.left},0)`)
     .call(d3.axisLeft(y));
 
-  const tooltip = d3.select("#tooltip");
-
   svg.selectAll("rect")
     .data(data)
     .enter()
@@ -62,14 +75,18 @@ export function renderBarChart({ containerId, data, xKey, yKey, tooltipLabel, on
     .attr("height", 0)
     .attr("fill", "steelblue")
     .on("mouseover", (event, d) => {
-      tooltip.style("display", "block")
-        .html(`<strong>${d[xKey]}</strong><br/>${tooltipLabel}: ${d[yKey]}`);
+      showTooltip(
+        `<strong>${d[xKey]}</strong><br/>${tooltipLabel}: ${d3.format(",")(d[yKey])}`,
+        event.pageX,
+        event.pageY
+      );
     })
     .on("mousemove", event => {
-      tooltip.style("left", (event.pageX + 10) + "px")
+      d3.select("#tooltip")
+        .style("left", (event.pageX + 10) + "px")
         .style("top", (event.pageY - 30) + "px");
     })
-    .on("mouseout", () => tooltip.style("display", "none"))
+    .on("mouseout", hideTooltip)
     .on("click", (event, d) => {
       if (onClickBar) onClickBar(d);
     })
@@ -77,6 +94,8 @@ export function renderBarChart({ containerId, data, xKey, yKey, tooltipLabel, on
     .duration(500)
     .attr("y", d => y(d[yKey]))
     .attr("height", d => height - margin.bottom - y(d[yKey]));
+
+  const formatWithB = val => d3.format(".3~s")(val).replace("G", "B");
 
   svg.selectAll("text.label")
     .data(data)
@@ -86,7 +105,7 @@ export function renderBarChart({ containerId, data, xKey, yKey, tooltipLabel, on
     .attr("x", d => x(d[xKey]) + x.bandwidth() / 2)
     .attr("y", d => y(d[yKey]) - 8)
     .attr("text-anchor", "middle")
-    .text(d => formatLabelFn ? formatLabelFn(d[yKey]) : d[yKey])
+    .text(d => formatLabelFn ? formatLabelFn(d[yKey]) : formatWithB(d[yKey]))
     .style("font-size", "12px");
 }
 
@@ -295,8 +314,6 @@ export async function renderChoroplethMap({ containerId, data, metricLabel }) {
     .attr("width", width)
     .attr("height", height);
 
-  const tooltip = d3.select("#tooltip");
-
   const world = await d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json");
   const countries = topojson.feature(world, world.objects.countries).features;
 
@@ -335,17 +352,21 @@ export async function renderChoroplethMap({ containerId, data, metricLabel }) {
       const name = d.properties.name.toUpperCase();
       const value = countryMap.get(name);
       if (value != null) {
-        tooltip.style("display", "block")
-          .html(`<strong>${d.properties.name}</strong><br/>${metricLabel}: ${d3.format(",")(value)}`);
+        showTooltip(
+          `<strong>${d.properties.name}</strong><br/>${metricLabel}: ${d3.format(",")(value).replace("G", "B")}`,
+          event.pageX,
+          event.pageY
+        );
       }
     })
     .on("mousemove", event => {
-      tooltip.style("left", (event.pageX + 10) + "px")
+      d3.select("#tooltip")
+        .style("left", (event.pageX + 10) + "px")
         .style("top", (event.pageY - 30) + "px");
     })
     .on("mouseout", function () {
       d3.select(this).transition().duration(150).attr("stroke-width", 1).attr("stroke", "#999");
-      tooltip.style("display", "none");
+      hideTooltip();
     });
 
   const legendWidth = 300;
@@ -383,7 +404,10 @@ export async function renderChoroplethMap({ containerId, data, metricLabel }) {
     .domain([Math.max(minValue, 1), maxValue])
     .range([0, legendWidth]);
 
-  const axis = d3.axisBottom(legendScale).ticks(5, "~s");
+  const axis = d3.axisBottom(legendScale).ticks(5);
+  if (metricLabel.includes("Revenue")) {
+    axis.tickFormat(d => d3.format(".3~s")(d).replace("G", "B"));
+  }
 
   legendSvg.append("g")
     .attr("transform", `translate(0, ${legendHeight})`)
