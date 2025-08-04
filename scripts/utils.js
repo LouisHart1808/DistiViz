@@ -1,9 +1,11 @@
 /**
- * Apply filter criteria to dataset
- * @param {Array<Object>} data
- * @param {Object} criteria - key-value filters
- * @param {Function} [customFn] - additional row-level predicate
- * @returns {Array<Object>}
+ * Apply filter criteria to a dataset.
+ * Filters based on exact matches in the criteria object and an optional custom function.
+ *
+ * @param {Array<Object>} data - The dataset to filter.
+ * @param {Object} criteria - Key-value filters to apply.
+ * @param {Function} [customFn] - Optional row-level predicate function.
+ * @returns {Array<Object>} Filtered dataset.
  */
 export function applyFilters(data, criteria = {}, customFn = () => true) {
   return data.filter(row => {
@@ -16,33 +18,12 @@ export function applyFilters(data, criteria = {}, customFn = () => true) {
 }
 
 /**
- * Capitalize first character of a string
- * @param {string} str
- * @returns {string}
- */
-export function capitalize(str) {
-  return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
-}
-
-/**
- * Debounce execution
- * @param {Function} fn
- * @param {number} delay
- * @returns {Function}
- */
-export function debounce(fn, delay = 300) {
-  let timeout;
-  return function (...args) {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => fn.apply(this, args), delay);
-  };
-}
-
-/**
- * Download an array of objects as CSV
- * @param {Array<Object>} dataRows
- * @param {string} filename
- * @param {Array<string>} [columns=null]
+ * Download a dataset as a CSV file.
+ * Creates and triggers a download link for the provided array of objects.
+ *
+ * @param {Array<Object>} dataRows - The data to download.
+ * @param {string} filename - Filename for the downloaded CSV.
+ * @param {Array<string>} [columns=null] - Optional column order. Defaults to keys from first row.
  */
 export function downloadCSV(dataRows, filename, columns = null) {
   if (!dataRows?.length) {
@@ -66,20 +47,10 @@ export function downloadCSV(dataRows, filename, columns = null) {
 }
 
 /**
- * Convert Excel serial date to JS Date
- * @param {number|string} serial
- * @returns {Date|null}
- */
-export function excelDateToDate(serial) {
-  const n = Number(serial);
-  if (isNaN(n) || n < 1) return null;
-  return new Date(Math.round((n - 25569) * 86400 * 1000));
-}
-
-/**
- * Format JS Date to dd/mm/yyyy
- * @param {Date} date
- * @returns {string}
+ * Format a JavaScript Date object to 'dd/mm/yyyy'.
+ *
+ * @param {Date} date - A valid JS Date object.
+ * @returns {string} Formatted date string or empty string for invalid date.
  */
 export function formatDate(date) {
   if (!(date instanceof Date) || isNaN(date)) return '';
@@ -90,10 +61,12 @@ export function formatDate(date) {
 }
 
 /**
- * Load and optionally transform CSV
- * @param {string} path
- * @param {Function} [parseFn]
- * @returns {Promise<Array<Object>>}
+ * Load a CSV file and optionally transform each row.
+ * Uses D3's CSV parser under the hood.
+ *
+ * @param {string} path - Path to the CSV file.
+ * @param {Function} [parseFn] - Optional transformation function for each row.
+ * @returns {Promise<Array<Object>>} Parsed and filtered rows.
  */
 export async function loadCSV(path, parseFn = d => d) {
   const raw = await d3.csv(path);
