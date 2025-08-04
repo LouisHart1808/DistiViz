@@ -4,27 +4,42 @@ import { renderGroupedTables, renderBarChart } from './visuals.js';
 export async function loadAppModule() {
   const data = await loadCSV('data/DistiApps.csv');
 
+  // Grab DOM elements
   const regionSelect = d3.select('#regionSelect');
   const level3Select = d3.select('#level3Select');
   const scoreSlider = d3.select('#scoreSlider');
 
+  // Define columns to export
   const columns = [
     "ID", "System/Application Level III", "System/Application Level II",
     "Application List Light Application", "Lead DIV", "Confidence"
   ];
 
+  /**
+   * Populate a select dropdown with given options
+   * @param {d3.Selection} selectElement - d3 selection of a <select> element
+   * @param {Array<string>} options - array of option values
+   * @param {string} defaultValue - the default selected value
+   */
+  function populateDropdown(selectElement, options, defaultValue = "All") {
+    selectElement.selectAll("option")
+      .data([defaultValue, ...options])
+      .enter()
+      .append("option")
+      .text(d => d);
+    selectElement.property("value", defaultValue);
+  }
+
+  // Populate dropdowns
   const regions = Array.from(new Set(data.map(d => d.Region).filter(Boolean))).sort();
-  regionSelect.selectAll('option')
-    .data(["All", ...regions])
-    .enter().append('option').text(d => d);
-  regionSelect.property("value", "All");
+  populateDropdown(regionSelect, regions);
 
   const level3s = Array.from(new Set(data.map(d => d["System/Application Level III"]))).sort();
-  level3Select.selectAll('option')
-    .data(["All", ...level3s])
-    .enter().append('option').text(d => d);
-  level3Select.property("value", "All");
+  populateDropdown(level3Select, level3s);
 
+  /**
+   * Update summary metrics, charts, and tables based on filters
+   */
   function update() {
     const region = regionSelect.property('value');
     const level3 = level3Select.property('value');
@@ -49,6 +64,7 @@ export async function loadAppModule() {
       downloadCSV(filtered, `Filtered_Data_${region}.csv`, columns);
     });
 
+    // Render bar chart
     const counts = Array.from(grouped, ([Distributor, values]) => ({ Distributor, Count: values.length }));
     const barChartContainer = d3.select("#barChart").html("");
     const barChartCard = barChartContainer.append("div").attr("class", "map-card");
@@ -63,6 +79,7 @@ export async function loadAppModule() {
       tooltipLabel: "Applications"
     });
 
+    // Render data tables
     const container = d3.select("#results").html("<h2>Filtered Application Tables by Distributor</h2>");
     renderGroupedTables({
       container,
@@ -74,6 +91,7 @@ export async function loadAppModule() {
     });
   }
 
+  // Bind filters
   scoreSlider.on("input", function () {
     d3.select("#scoreValue").text(this.value);
     update();
@@ -82,5 +100,6 @@ export async function loadAppModule() {
   regionSelect.on("change", update);
   level3Select.on("change", update);
 
+  // Initial render
   update();
 }
