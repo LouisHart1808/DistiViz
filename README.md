@@ -29,7 +29,7 @@
 ---
 
 ## Folder Structure
-
+```bash
 ├── data/
 │ ├── DistiApps.csv
 │ └── DistiDregs.csv
@@ -42,7 +42,7 @@
 ├── index.html
 ├── style.css
 └── README.md
-
+```
 ---
 
 ## Getting Started
