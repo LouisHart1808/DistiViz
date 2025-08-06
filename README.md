@@ -49,7 +49,7 @@
 
 1. **Download or clone the repository**
 2. **Add the data files manually**
-- Due to data confidentiality, the actual CSV datasets are excluded from the repository via .gitignore.**
+- Due to data confidentiality, the actual CSV datasets are excluded from the repository via .gitignore.
 - To use the app locally, obtain the following files: DistiApps.csv, DistiDregs.csv. Place them in the /data/ folder in the root directory.
 3. **Open `index.html` in VSCode**
 4. **Go Live to run the project on localhost; the project has yet to be deployed**
