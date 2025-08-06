@@ -67,10 +67,10 @@ No server or backend processing is needed.
 
 ---
 
-## Security Notes
+## Notes
 
 - 100% client-side; no data is sent to any server
-- No login required; suitable for intranet environments
+- No login required
 - No external API dependencies
 
 ---
