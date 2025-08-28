@@ -1,4 +1,3 @@
-// Import only the necessary utility functions (excelDateToDate was unused)
 import { loadCSV, formatDate, downloadCSV, applyFilters } from './utils.js';
 import { renderGroupedTables, renderBarChart, renderChoroplethMap } from './visuals.js';
 
@@ -35,11 +34,6 @@ export async function loadDregModule() {
     .map(d => d.getFullYear()))).sort((a, b) => a - b);
 
   // Helper function to populate a dropdown with options
-  // target: d3 selection of <select>
-  // options: array of option values
-  // defaultValue: (optional) value to set as selected
-  // valueFn: (optional) function to get value attribute for each option
-  // textFn: (optional) function to get display text for each option
   function populateDropdown(target, options, defaultValue, valueFn = d => d, textFn = d => d) {
     target.selectAll("option").remove();
     target.selectAll("option")
@@ -66,44 +60,60 @@ export async function loadDregModule() {
   const regStatusOptions = ["All", ...Array.from(new Set(data.map(d => d["Reg Status"]).filter(Boolean))).sort()];
   populateDropdown(regStatusSelect, regStatusOptions, regStatusOptions[0]);
 
-  const distiCounts = d3.rollups(data, v => v.length, d => d.Distributor)
-    .map(([Distributor, Count]) => ({ Distributor, Count }))
-    .sort((a, b) => d3.descending(a.Count, b.Count));
+  // === Aggregate histograms (respect Start/End Year selection) ===
+  function getYearFilteredData() {
+    const startY = +mapStartYearSelect.property("value");
+    const endY = +mapEndYearSelect.property("value");
+    return data.filter(d => {
+      const dt = d["Approval Date Raw"];
+      if (!(dt instanceof Date) || isNaN(dt)) return false;
+      const y = dt.getFullYear();
+      return y >= startY && y <= endY;
+    });
+  }
 
-  const distiContainer = d3.select("#distributorBarChart").html("");
-  const distiCard = distiContainer.append("div").attr("class", "map-card");
-  distiCard.append("h3").attr("class", "map-title").text("Total Number of DREGs per Distributor");
-  distiCard.append("div").attr("id", "distributorBarChartInner");
-  renderBarChart({
-    containerId: "distributorBarChartInner",
-    data: distiCounts,
-    xKey: "Distributor",
-    yKey: "Count",
-    tooltipLabel: "DREGs"
-  });
-  
-  const shortFormat = d3.format(".3~s");
+  function renderAggregateCharts() {
+    const yearFiltered = getYearFilteredData();
 
-  const revenueByDistributor = d3.rollups(
-    data,
-    v => d3.sum(v, d => +d["DREG Rev 3y"] || 0),
-    d => d.Distributor
-  )
-    .map(([Distributor, Revenue]) => ({ Distributor, Count: Revenue }))
-    .sort((a, b) => d3.descending(a.Count, b.Count));
-  
-  const revContainer = d3.select("#revenueBarChart").html("");
-  const revCard = revContainer.append("div").attr("class", "map-card");
-  revCard.append("h3").attr("class", "map-title").text("Total Revenue per Distributor (3y)");
-  revCard.append("div").attr("id", "revenueBarChartInner");
-  renderBarChart({
-    containerId: "revenueBarChartInner",
-    data: revenueByDistributor,
-    xKey: "Distributor",
-    yKey: "Count",
-    tooltipLabel: "Total Revenue (3y)",
-    formatLabelFn: val => d3.format(".3~s")(val).replace("G", "B")
-  });
+    // DREG count per Distributor (filtered by year)
+    const distiCounts = d3.rollups(yearFiltered, v => v.length, d => d.Distributor)
+      .map(([Distributor, Count]) => ({ Distributor, Count }))
+      .sort((a, b) => d3.descending(a.Count, b.Count));
+
+    const distiContainer = d3.select("#distributorBarChart").html("");
+    const distiCard = distiContainer.append("div").attr("class", "map-card");
+    distiCard.append("h3").attr("class", "map-title").text("Total Number of DREGs per Distributor");
+    distiCard.append("div").attr("id", "distributorBarChartInner");
+    renderBarChart({
+      containerId: "distributorBarChartInner",
+      data: distiCounts,
+      xKey: "Distributor",
+      yKey: "Count",
+      tooltipLabel: "DREGs"
+    });
+
+    // Revenue per Distributor (filtered by year)
+    const revenueByDistributor = d3.rollups(
+      yearFiltered,
+      v => d3.sum(v, d => +d["DREG Rev 3y"] || 0),
+      d => d.Distributor
+    )
+      .map(([Distributor, Revenue]) => ({ Distributor, Count: Revenue }))
+      .sort((a, b) => d3.descending(a.Count, b.Count));
+
+    const revContainer = d3.select("#revenueBarChart").html("");
+    const revCard = revContainer.append("div").attr("class", "map-card");
+    revCard.append("h3").attr("class", "map-title").text("Total Revenue per Distributor (3y)");
+    revCard.append("div").attr("id", "revenueBarChartInner");
+    renderBarChart({
+      containerId: "revenueBarChartInner",
+      data: revenueByDistributor,
+      xKey: "Distributor",
+      yKey: "Count",
+      tooltipLabel: "Total Revenue (3y)",
+      formatLabelFn: val => d3.format(".3~s")(val).replace("G", "B")
+    });
+  }
 
   function renderAnnualChart(distributor, segment, region) {
     const filtered = data.filter(d =>
@@ -403,10 +413,11 @@ export async function loadDregModule() {
   distributorSelect.on("change", update);
   regStatusSelect.on("change", update);
 
-  mapMetricSelect.on("change", updateChoroplethMap);
-  mapStartYearSelect.on("change", updateChoroplethMap);
-  mapEndYearSelect.on("change", updateChoroplethMap);
+  mapMetricSelect.on("change", () => { updateChoroplethMap(); });
+  mapStartYearSelect.on("change", () => { updateChoroplethMap(); renderAggregateCharts(); });
+  mapEndYearSelect.on("change", () => { updateChoroplethMap(); renderAggregateCharts(); });
 
   update();
   updateChoroplethMap();
+  renderAggregateCharts();
 }
