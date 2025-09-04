@@ -1,4 +1,5 @@
 import { renderGroupedTables } from './visuals.js';
+import { DataStore, renderCacheControls } from './utils.js';
 
 let bootstrapped = false;
 
@@ -105,6 +106,14 @@ function titleCaseCountry(s) {
   if (!s) return s;
   const t = s.toString().trim();
   return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+}
+
+function recomputeEnableQuery() {
+  const ui = state.ui || {};
+  const ok = state.masterRows.length > 0 && state.campaignRows.length > 0 &&
+    !!ui.startDate?.value && !!ui.queryPeriod?.value &&
+    !!ui.distributor?.value && !!ui.country?.value;
+  enable(ui.queryBtn, ok);
 }
 
 function updateCountryOptions() {
@@ -328,6 +337,24 @@ function bindOnce() {
     resultsContainer: $('#resultsContainer'),
   };
 
+  // Cache status/controls placeholders (idempotent) under each status line
+  let masterCacheUI = document.getElementById('campaignMasterCacheUI');
+  if (!masterCacheUI) {
+    masterCacheUI = document.createElement('div');
+    masterCacheUI.id = 'campaignMasterCacheUI';
+    state.ui.masterStatus?.parentNode?.insertBefore(masterCacheUI, state.ui.masterStatus.nextSibling);
+  } else {
+    masterCacheUI.innerHTML = '';
+  }
+  let leadsCacheUI = document.getElementById('campaignLeadsCacheUI');
+  if (!leadsCacheUI) {
+    leadsCacheUI = document.createElement('div');
+    leadsCacheUI.id = 'campaignLeadsCacheUI';
+    state.ui.campaignStatus?.parentNode?.insertBefore(leadsCacheUI, state.ui.campaignStatus.nextSibling);
+  } else {
+    leadsCacheUI.innerHTML = '';
+  }
+
   // Drag & drop support for the two upload areas (delegate by proximity)
   $all('#campaignCheckerSection .upload-area').forEach(area => {
     ['dragenter','dragover'].forEach(evt => area.addEventListener(evt, e => { e.preventDefault(); area.classList.add('drag'); }));
@@ -355,10 +382,7 @@ function bindOnce() {
 
   // Input validation/enabling
   const validate = () => {
-    const ok = state.masterRows.length > 0 && state.campaignRows.length > 0 &&
-      !!state.ui.startDate?.value && !!state.ui.queryPeriod?.value &&
-      !!state.ui.distributor?.value && !!state.ui.country?.value;
-    enable(state.ui.queryBtn, ok);
+    recomputeEnableQuery();
   };
 
   ['input','change'].forEach(evt => {
@@ -405,6 +429,69 @@ function bindOnce() {
       setLoading(false);
     }
   });
+
+  recomputeEnableQuery();
+}
+
+async function restoreFromCache() {
+  try {
+    const [masterCached, leadsCached] = await Promise.all([
+      DataStore.get('campaign:master'),
+      DataStore.get('campaign:leads')
+    ]);
+
+    // Restore Master
+    if (masterCached && Array.isArray(masterCached.rows) && masterCached.rows.length) {
+      state.masterRows = masterCached.rows.map(r => ({
+        ...r,
+        registration_date: r.registration_date ? new Date(r.registration_date) : null
+      }));
+      const dists = Array.from(new Set(state.masterRows.map(r => r.distributor).filter(Boolean)))
+        .sort((a,b) => a.localeCompare(b));
+      if (state.ui.distributor) {
+        state.ui.distributor.innerHTML = '<option value="">-- Select Distributor --</option>' +
+          dists.map(d => `<option value="${norm(d)}">${d}</option>`).join('');
+      }
+      updateCountryOptions();
+      setStatus(state.ui.masterStatus, true, `Restored ${state.masterRows.length} rows from cache`);
+      await renderCacheControls({
+        container: document.getElementById('campaignMasterCacheUI'),
+        storeKey: 'campaign:master',
+        onClear: () => {
+          state.masterRows = [];
+          if (state.ui.distributor) state.ui.distributor.innerHTML = '<option value="">-- Select Distributor --</option>';
+          updateCountryOptions();
+          setStatus(state.ui.masterStatus, true, 'Cache cleared. Upload master file to begin.');
+          renderCacheControls({ container: document.getElementById('campaignMasterCacheUI'), storeKey: 'campaign:master', onClear: () => {} });
+          recomputeEnableQuery();
+        }
+      });
+    } else {
+      await renderCacheControls({ container: document.getElementById('campaignMasterCacheUI'), storeKey: 'campaign:master', onClear: () => {} });
+    }
+
+    // Restore Leads
+    if (leadsCached && Array.isArray(leadsCached.rows) && leadsCached.rows.length) {
+      state.campaignRows = leadsCached.rows;
+      setStatus(state.ui.campaignStatus, true, `Restored ${state.campaignRows.length} leads from cache`);
+      await renderCacheControls({
+        container: document.getElementById('campaignLeadsCacheUI'),
+        storeKey: 'campaign:leads',
+        onClear: () => {
+          state.campaignRows = [];
+          setStatus(state.ui.campaignStatus, true, 'Cache cleared. Upload campaign file to begin.');
+          renderCacheControls({ container: document.getElementById('campaignLeadsCacheUI'), storeKey: 'campaign:leads', onClear: () => {} });
+          recomputeEnableQuery();
+        }
+      });
+    } else {
+      await renderCacheControls({ container: document.getElementById('campaignLeadsCacheUI'), storeKey: 'campaign:leads', onClear: () => {} });
+    }
+
+    recomputeEnableQuery();
+  } catch (e) {
+    console.warn('Campaign module cache rehydrate failed', e);
+  }
 }
 
 async function handleMasterFile(file) {
@@ -412,6 +499,15 @@ async function handleMasterFile(file) {
     setStatus(state.ui.masterStatus, true, `Reading: ${file.name}`);
     const rows = await readExcel(file);
     state.masterRows = shapeMasterRows(rows);
+
+    // Persist processed master rows
+    try {
+      const serializable = state.masterRows.map(r => ({
+        ...r,
+        registration_date: r.registration_date ? r.registration_date.toISOString() : null
+      }));
+      await DataStore.set('campaign:master', serializable, { source: 'campaignMasterExcel' });
+    } catch (e) { console.warn('Persist campaign:master failed', e); }
 
     // Populate distributors
     const dists = Array.from(new Set(state.masterRows.map(r => r.distributor).filter(Boolean)))
@@ -423,7 +519,19 @@ async function handleMasterFile(file) {
 
     updateCountryOptions();
 
-    setStatus(state.ui.masterStatus, true, `Loaded ${state.masterRows.length} rows`);
+    setStatus(state.ui.masterStatus, true, `Loaded ${state.masterRows.length} rows (cached)`);
+    await renderCacheControls({
+      container: document.getElementById('campaignMasterCacheUI'),
+      storeKey: 'campaign:master',
+      onClear: () => {
+        state.masterRows = [];
+        if (state.ui.distributor) state.ui.distributor.innerHTML = '<option value="">-- Select Distributor --</option>';
+        updateCountryOptions();
+        setStatus(state.ui.masterStatus, true, 'Cache cleared. Upload master file to begin.');
+        renderCacheControls({ container: document.getElementById('campaignMasterCacheUI'), storeKey: 'campaign:master', onClear: () => {} });
+        recomputeEnableQuery();
+      }
+    });
   } catch (e) {
     console.error(e);
     setStatus(state.ui.masterStatus, false, 'Failed to read master file');
@@ -435,8 +543,20 @@ async function handleCampaignFile(file) {
     setStatus(state.ui.campaignStatus, true, `Reading: ${file.name}`);
     const rows = await readExcel(file);
     state.campaignRows = shapeCampaignRows(rows);
-    setStatus(state.ui.campaignStatus, true, `Loaded ${state.campaignRows.length} leads`);
-
+    try {
+      await DataStore.set('campaign:leads', state.campaignRows, { source: 'campaignLeadsExcel' });
+    } catch (e) { console.warn('Persist campaign:leads failed', e); }
+    setStatus(state.ui.campaignStatus, true, `Loaded ${state.campaignRows.length} leads (cached)`);
+    await renderCacheControls({
+      container: document.getElementById('campaignLeadsCacheUI'),
+      storeKey: 'campaign:leads',
+      onClear: () => {
+        state.campaignRows = [];
+        setStatus(state.ui.campaignStatus, true, 'Cache cleared. Upload campaign file to begin.');
+        renderCacheControls({ container: document.getElementById('campaignLeadsCacheUI'), storeKey: 'campaign:leads', onClear: () => {} });
+        recomputeEnableQuery();
+      }
+    });
     // Preview rendering is handled after running a query via renderTables().
   } catch (e) {
     console.error(e);
@@ -447,6 +567,7 @@ async function handleCampaignFile(file) {
 export async function loadCampaignModule() {
   if (bootstrapped) return; // init once per session
   bindOnce();
+  await restoreFromCache();
   updateCountryOptions();
   bootstrapped = true;
 }
