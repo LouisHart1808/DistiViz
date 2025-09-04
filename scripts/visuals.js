@@ -317,7 +317,12 @@ export async function renderChoroplethMap({ containerId, data, metricLabel }) {
   const world = await d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json");
   const countries = topojson.feature(world, world.objects.countries).features;
 
-  const projection = d3.geoNaturalEarth1().fitSize([width, height], { type: "Sphere" });
+  const projection = d3.geoMercator()
+    .center([120, 0])        // center roughly Indonesia
+    .scale(200)              // zoom in more
+    .translate([width / 2, height / 2]);
+  // Old fitExtent logic removed; scale/center handles zoom now
+
   const path = d3.geoPath().projection(projection);
 
   const minValue = d3.min(data, d => d.value);
@@ -335,9 +340,17 @@ export async function renderChoroplethMap({ containerId, data, metricLabel }) {
   const unmatched = [...countryMap.keys()].filter(name => !mapCountryNames.has(name));
   console.warn("Countries in data not matched on map:", unmatched);
 
+  // Filter to Asia–Pacific using centroid lon/lat bounds (handles antimeridian properly)
+  const inAPBounds = (feature) => {
+    const [lon, lat] = d3.geoCentroid(feature);
+    const lon360 = lon < 0 ? lon + 360 : lon; // normalize to [0,360)
+    return (lon360 >= 65 && lon360 <= 180) && (lat >= -50 && lat <= 40);
+  };
+  const apCountries = countries.filter(inAPBounds);
+
   svg.append("g")
     .selectAll("path")
-    .data(countries)
+    .data(apCountries)
     .enter()
     .append("path")
     .attr("d", path)
