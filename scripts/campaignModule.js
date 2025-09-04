@@ -263,9 +263,29 @@ function renderTables({ filteredMaster, campaign, matches }) {
   const matchesSel = d3.select('#matchesTable');
   const masterSel = d3.select('#masterTable');
   const campaignSel = d3.select('#campaignTable');
-  matchesSel.html('');
-  masterSel.html('');
-  campaignSel.html('');
+
+  // Defensive helper to ensure container exists
+  const ensureContainer = (sel, id) => {
+    if (!sel || sel.empty()) {
+      const host = state.ui.resultsContainer || document.getElementById('resultsContainer') || document.body;
+      let div = document.getElementById(id);
+      if (!div) {
+        div = document.createElement('div');
+        div.id = id;
+        host.appendChild(div);
+      }
+      return d3.select('#' + id);
+    }
+    return sel;
+  };
+
+  const _matchesSel = ensureContainer(matchesSel, 'matchesTable');
+  const _masterSel = ensureContainer(masterSel, 'masterTable');
+  const _campaignSel = ensureContainer(campaignSel, 'campaignTable');
+
+  _matchesSel.html('');
+  _masterSel.html('');
+  _campaignSel.html('');
 
   // Normalize rows to pretty column names expected by renderGroupedTables
   const matchRows = matches.map(m => ({
@@ -291,21 +311,21 @@ function renderTables({ filteredMaster, campaign, matches }) {
 
   // Render three grouped tables (each in its own expander card) with sorting
   renderGroupedTables({
-    container: matchesSel,
+    container: _matchesSel,
     groupedData: new Map([["Potential Matches Found", matchRows]]),
     columns: ['Contact Person','Email','Campaign Company','Resale Customer','Registration ID','Registration Date'],
     defaultCollapsed: false
   });
 
   renderGroupedTables({
-    container: masterSel,
+    container: _masterSel,
     groupedData: new Map([["Business Opportunities Filtered", masterRows]]),
     columns: ['Registration ID','Resale Customer','Registration Date'],
     defaultCollapsed: true
   });
 
   renderGroupedTables({
-    container: campaignSel,
+    container: _campaignSel,
     groupedData: new Map([["All Campaign Leads", campaignRows]]),
     columns: ['Name','Email','Company'],
     defaultCollapsed: true
