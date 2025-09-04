@@ -8,12 +8,14 @@ const regionalMapSection = document.getElementById('regionalMapSection');
 const navApps = document.getElementById('nav-apps');
 const navDregs = document.getElementById('nav-dregs');
 const navCampaign = document.getElementById('nav-campaign');
+const navCompare = document.getElementById('nav-compare');
 const appFilters = document.getElementById('app-filters');
 const dregFilters = document.getElementById('dreg-filters');
 const dregBreakdownSection = document.getElementById('dreg-breakdown-section');
 const distributorBarChartContainer = document.getElementById('distributorBarChartContainer');
 const topCountriesChartSection = document.getElementById('topCountriesChartSection');
 const campaignCheckerSection = document.getElementById('campaignCheckerSection');
+const compareSection = document.getElementById('compareSection');
 
 // shared visual containers
 const summary = document.getElementById('summary');
@@ -43,23 +45,32 @@ const tabConfig = {
   apps: {
     loader: () => import('./appModule.js').then(m => m.loadAppModule()),
     show: [appFilters],
-    hide: [dregFilters, dregBreakdownSection, distributorBarChartContainer, regionalMapSection, topCountriesChartSection, campaignCheckerSection]
+    hide: [dregFilters, dregBreakdownSection, distributorBarChartContainer, regionalMapSection, topCountriesChartSection, campaignCheckerSection, compareSection]
   },
   dregs: {
     loader: () => import('./dregModule.js').then(m => m.loadDregModule()),
     show: [dregFilters, dregBreakdownSection, distributorBarChartContainer, regionalMapSection, topCountriesChartSection],
-    hide: [appFilters, campaignCheckerSection]
+    hide: [appFilters, campaignCheckerSection, compareSection]
   },
   campaign: {
     loader: () => import('./campaignModule.js').then(m => m.loadCampaignModule()),
     show: [campaignCheckerSection],
-    hide: [appFilters, dregFilters, dregBreakdownSection, distributorBarChartContainer, regionalMapSection, topCountriesChartSection]
+    hide: [appFilters, dregFilters, dregBreakdownSection, distributorBarChartContainer, regionalMapSection, topCountriesChartSection, compareSection]
+  },
+  compare: {
+    loader: () => import('./compareModule.js').then(m => {
+      if (m && typeof m.refreshOptions === 'function') {
+        m.refreshOptions();
+      }
+    }),
+    show: [compareSection],
+    hide: [appFilters, dregFilters, dregBreakdownSection, distributorBarChartContainer, regionalMapSection, topCountriesChartSection, campaignCheckerSection]
   }
 };
 
 /**
  * Set active tab and toggle visibility accordingly
- * @param {'apps' | 'dregs' | 'campaign'} tab
+ * @param {'apps' | 'dregs' | 'campaign' | 'compare'} tab
  */
 function setActiveTab(tab) {
   // Nav active state (defensive: nav may not exist during early paint)
@@ -76,7 +87,7 @@ function setActiveTab(tab) {
   try { localStorage.setItem('activeTab', tab); } catch (_) {}
 }
 
-// Attach tab navigation listeners (apps/dregs/campaign)
+// Attach tab navigation listeners (apps/dregs/campaign/compare)
 Object.keys(tabConfig).forEach(tab => {
   const link = document.getElementById(`nav-${tab}`);
   if (!link) return;
