@@ -675,6 +675,11 @@ body.dark-mode .badge.err { background: #4a1f1f; color: #ffcccc; border-color: #
   outline-offset: 2px;
 }
 
+#appsCacheUI,
+#dregsCacheUI {
+  margin-bottom: 16px;
+}
+
 /* Dark Mode variants */
 body.dark-mode .upload-area {
   border-color: #4a6ea8;
