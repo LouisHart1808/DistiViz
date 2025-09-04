@@ -6,6 +6,7 @@
   <link rel="stylesheet" href="style.css" />
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -25,6 +26,17 @@
   <!-- Regional Map Overview -->
   <section id="regionalMapSection" style="margin: 30px 0;">
     <h2>Geographic Distribution of DREGs</h2>
+    <!-- DREGs Workbook Upload -->
+    <div class="step dreg-upload" style="margin: 12px 0 18px;">
+      <h3>Upload DREGs Excel Workbook</h3>
+      <div class="upload-area" role="button" tabindex="0" aria-label="Upload DREGs Excel file" onclick="document.getElementById('dregExcelInput').click()">
+        <div class="upload-icon" aria-hidden="true">📄</div>
+        <p><strong>Click to upload or drag &amp; drop your Excel workbook</strong></p>
+        <p><strong>Only the sheet:</strong> <code>Data</code> will be used. Column <code>MAIN DISTRIBUTOR</code> will be renamed to <code>Distributor</code>. Region filtered to <code>AP</code>. Dummy rows dropped.</p>
+      </div>
+      <input type="file" id="dregExcelInput" accept=".xlsx,.xls,.xlsb,.csv" style="display:none;" />
+      <div id="dregUploadStatus" class="upload-status" aria-live="polite"></div>
+    </div>
     <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
       <label>
         View Metric:
@@ -66,10 +78,6 @@
         <label style="display: flex; flex-direction: column;">
           Select Segment:
           <select id="annualSegmentSelect"></select>
-        </label>
-        <label style="display: flex; flex-direction: column;">
-          Select Region Resale Customer:
-          <select id="annualRegionSelect"></select>
         </label>
       </div>
       <div id="annualDregsChart"></div>
@@ -132,8 +140,8 @@
   <section id="dreg-breakdown-section" style="margin-top: 20px; display: none;">
     <label for="breakdownSelect">Group DREGs By:</label>
     <select id="breakdownSelect">
-      <option value="Region Resale Customer">Region Resale Customer</option>
       <option value="Segment">Segment</option>
+      <option value="Subregion Resp">Subregion</option>
     </select>
     <div id="dregBreakdownChart"></div>
     <div id="revenueBreakdownChart"></div>
