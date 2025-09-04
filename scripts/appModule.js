@@ -439,4 +439,13 @@ export async function loadAppModule() {
   scoreSlider.on('input', function () { d3.select('#scoreValue').text(this.value); update(); });
   regionSelect.on('change', update);
   level3Select.on('change', update);
+
+  // Persist data at the end of module load if available, without emitting events or exposing globally
+  if (data && Array.isArray(data) && data.length > 0) {
+    try {
+      await DataStore.set('apps', data, { source: 'appsExcel' });
+    } catch (e) {
+      console.warn('Failed to persist apps data at module load', e);
+    }
+  }
 }
