@@ -1,4 +1,4 @@
-import { downloadCSV, applyFilters, bindDropInput, setUploadStatus, formatBytes } from './utils.js';
+import { downloadCSV, applyFilters, bindDropInput, setUploadStatus, formatBytes, DataStore, renderCacheControls } from './utils.js';
 import { renderGroupedTables, renderBarChart } from './visuals.js';
 
 async function loadXLSX() {
@@ -253,6 +253,12 @@ export async function loadAppModule() {
   // No CSV preload; wait for user Excel upload
   let data = [];
 
+  // Define columns to export (must exist before first render)
+  const columns = [
+    'ID', 'System/Application Level III', 'System/Application Level II',
+    'Application List Light Application', 'Lead DIV', 'Confidence'
+  ];
+
   // Grab DOM elements
   const regionSelect = d3.select('#regionSelect');
   const level3Select = d3.select('#level3Select');
@@ -261,7 +267,44 @@ export async function loadAppModule() {
   const dropArea = document.querySelector('.upload-area');
   const excelInputEl = document.getElementById('appsExcelInput');
   const statusEl = document.getElementById('appsUploadStatus');
-  setUploadStatus(statusEl, { state: 'idle', message: 'Please upload your Excel workbook to begin.' });
+
+  // Cache status/controls placeholder just under the status line (idempotent)
+  let cacheUIEl = document.getElementById('appsCacheUI');
+  if (!cacheUIEl) {
+    cacheUIEl = document.createElement('div');
+    cacheUIEl.id = 'appsCacheUI';
+    statusEl?.parentNode?.insertBefore(cacheUIEl, statusEl.nextSibling);
+  } else {
+    cacheUIEl.innerHTML = '';
+  }
+
+  // Try to rehydrate from IndexedDB-backed DataStore
+  try {
+    const cached = await DataStore.get('apps');
+    if (cached && Array.isArray(cached.rows) && cached.rows.length) {
+      data = cached.rows;
+      rebuildFiltersAndRender();
+      setUploadStatus(statusEl, { state: 'ok', message: `Restored ${data.length.toLocaleString()} rows from previous session.` });
+    } else {
+      setUploadStatus(statusEl, { state: 'idle', message: 'Please upload your Excel workbook to begin.' });
+    }
+  } catch (e) {
+    console.warn('DataStore get failed; falling back to idle state', e);
+    setUploadStatus(statusEl, { state: 'idle', message: 'Please upload your Excel workbook to begin.' });
+  }
+
+  // Render cache controls strip
+  await renderCacheControls({
+    container: cacheUIEl,
+    storeKey: 'apps',
+    onClear: () => {
+      data = [];
+      renderEmptyState();
+      setUploadStatus(statusEl, { state: 'idle', message: 'Cache cleared. Upload a workbook to proceed.' });
+      // refresh strip
+      renderCacheControls({ container: cacheUIEl, storeKey: 'apps', onClear: () => {} });
+    }
+  });
 
   function setFiltersEnabled(enabled){
     regionSelect.property('disabled', !enabled);
@@ -287,6 +330,8 @@ export async function loadAppModule() {
         const { ok, missingColumns } = validateAppsRows(rows);
         if (!ok) console.warn('Missing expected columns from Excel:', missingColumns);
         data = rows;
+        try { await DataStore.set('apps', rows, { source: 'appsExcel' }); } catch (e) { console.warn('Failed to persist apps rows', e); }
+        await renderCacheControls({ container: cacheUIEl, storeKey: 'apps', onClear: () => {} });
         rebuildFiltersAndRender();
         setUploadStatus(statusEl, { state: 'ok', filename: file.name, message: `Parsed ${rows.length} rows.` });
         setFiltersEnabled(true);
@@ -298,11 +343,6 @@ export async function loadAppModule() {
     }
   });
 
-  // Define columns to export
-  const columns = [
-    'ID', 'System/Application Level III', 'System/Application Level II',
-    'Application List Light Application', 'Lead DIV', 'Confidence'
-  ];
 
   function populateDropdown(selectElement, options, defaultValue = 'All') {
     selectElement.selectAll('option').remove();
@@ -324,8 +364,10 @@ export async function loadAppModule() {
     update();
   }
 
-  // Initial population from CSV
-  renderEmptyState();
+  // Initial population – only show empty state if nothing was restored/loaded
+  if (!data || data.length === 0) {
+    renderEmptyState();
+  }
 
   function update() {
     if (!data || data.length === 0) { renderEmptyState(); return; }
