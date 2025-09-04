@@ -17,6 +17,7 @@
       <ul>
         <li><a href="#" id="nav-apps" class="active">Distributors' Applications</a></li>
         <li><a href="#" id="nav-dregs">Distributors' DREGs</a></li>
+        <li><a href="#" id="nav-compare">Distributor Verifier</a></li>
         <li><a href="#" id="nav-campaign">Campaign Conversion Checker</a></li>
       </ul>
       <button id="darkModeToggle" aria-label="Toggle Dark Mode">🌙</button>
@@ -24,7 +25,7 @@
   </nav>
 
   <!-- Regional Map Overview -->
-  <section id="regionalMapSection" style="margin: 30px 0;">
+  <section id="regionalMapSection" style="margin: 24px 0;">
     <h2>Geographic Distribution of DREGs</h2>
     <!-- DREGs Workbook Upload -->
     <div class="step dreg-upload" style="margin: 12px 0 18px;">
@@ -54,23 +55,23 @@
         <select id="mapEndYearSelect"></select>
       </label>
     </div>
-    <div id="regionalMap" style="margin-top: 20px;"></div>
+    <div id="regionalMap" style="margin-top: 12px;"></div>
   </section>
 
-  <section id="topCountriesChartSection" style="margin: 40px 0; display: none;">
+  <section id="topCountriesChartSection" style="margin: 24px 0; display: none;">
     <div id="topCountriesChart"></div>
   </section>
 
   <!-- DREG Chart: Total per Distributor -->
-  <section id="distributorBarChartContainer" style="margin: 20px 0; display: none;">
+  <section id="distributorBarChartContainer" style="margin: 24px 0; display: none;">
     <h2>Aggregated Total Data of Distributors</h2>
     <div id="distributorBarChart"></div>
     <div id="revenueBarChart"></div>
 
     <!-- Annual DREGs Section -->
-    <section id="annualDregsSection" style="margin-top: 40px;">
+    <section id="annualDregsSection" style="margin-top: 24px;">
       <h2>Annual DREGs of Distributor</h2>
-      <div id="annualFilterRow" style="display: flex; flex-direction: row; align-items: center; gap: 20px; flex-wrap: wrap; margin-bottom: 16px;">
+      <div id="annualFilterRow" style="display: flex; flex-direction: row; align-items: center; gap: 20px; flex-wrap: wrap; margin-bottom: 12px;">
         <label style="display: flex; flex-direction: column;">
           Select Distributor:
           <select id="annualDistributorSelect"></select>
@@ -87,8 +88,7 @@
 
   <!-- Applications Filters -->
   <section id="app-filters">
-    <!-- Applications Workbook Upload (polished) -->
-    <div class="step" style="margin-top: 20px;">
+    <div class="step" style="margin-top: 12px;">
       <h3>Upload Applications Excel Workbook</h3>
       <div class="upload-area" role="button" tabindex="0" aria-label="Upload applications Excel file" onclick="document.getElementById('appsExcelInput').click()">
         <div class="upload-icon" aria-hidden="true">📄</div>
@@ -137,7 +137,7 @@
   </section>
 
   <!-- DREG Breakdown Chart -->
-  <section id="dreg-breakdown-section" style="margin-top: 20px; display: none;">
+  <section id="dreg-breakdown-section" style="margin-top: 12px; display: none;">
     <label for="breakdownSelect">Group DREGs By:</label>
     <select id="breakdownSelect">
       <option value="Segment">Segment</option>
@@ -157,7 +157,7 @@
   <div id="tooltip" class="tooltip"></div>
 
   <!-- Campaign Conversion Checker Module -->
-  <section id="campaignCheckerSection" style="display: none; margin: 30px 0;">
+  <section id="campaignCheckerSection" style="display: none; margin: 24px 0;">
 
     <!-- Step 1: Upload Master File -->
     <div class="step">
@@ -187,73 +187,103 @@
     </div>
 
     <!-- Step 3: Campaign Details -->
-    <div class="step">
-      <h3>Step 3: Enter Campaign Details</h3>
-      <div class="form-group">
-        <label for="startDate">Campaign Start Date:</label>
-        <input type="date" id="startDate" required />
-      </div>
-
-      <div class="form-group">
-        <label for="queryPeriod">Query Period (days after start date):</label>
-        <select id="queryPeriod" required>
-          <option value="">-- Select Period --</option>
-          <option value="30">30 Days</option>
-          <option value="60">60 Days</option>
-          <option value="90">90 Days</option>
-          <option value="180" selected>180 Days (Default)</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="distributor">Select Distributor:</label>
-        <select id="distributor" required>
-          <option value="">-- Select Distributor --</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="country">Target Country:</label>
-        <select id="country" required>
-          <option value="">-- Select Country --</option>
-        </select>
-      </div>
-
-      <button class="btn" id="queryBtn" disabled aria-disabled="true">Find Matching Opportunities</button>
+    <div class="form-group">
+      <label for="startDate">Campaign Start Date:</label>
+      <input type="date" id="startDate" required />
     </div>
 
-    <!-- Campaign Summary Metrics -->
-    <div id="campaignSummary" class="map-card campaign-summary-card" style="margin-top: 20px;">
-      <h3 class="map-title">Summary Metrics</h3>
-      <div class="kpi-row" id="campaignSummaryContent"></div>
+    <div class="form-group">
+      <label for="queryPeriod">Query Period (days after start date):</label>
+      <select id="queryPeriod" required>
+        <option value="">-- Select Period --</option>
+        <option value="30">30 Days</option>
+        <option value="60">60 Days</option>
+        <option value="90">90 Days</option>
+        <option value="180" selected>180 Days (Default)</option>
+      </select>
     </div>
 
-    <div class="loading" id="loading" aria-live="polite">
+    <div class="form-group">
+      <label for="distributor">Select Distributor:</label>
+      <select id="distributor" required>
+        <option value="">-- Select Distributor --</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="country">Target Country:</label>
+      <select id="country" required>
+        <option value="">-- Select Country --</option>
+      </select>
+    </div>
+
+    <button class="btn" id="queryBtn" disabled aria-disabled="true">Find Matching Opportunities</button>
+  </section>
+
+  <!-- Compare Module -->
+  <section id="compareSection" style="display: none; margin: 24px 0;">
+    <h2>Compare Applications vs DREGs</h2>
+    <p class="note">
+      This module uses the data you already uploaded into the Applications and DREGs modules.
+      Select a Distributor and Segment to compare aggregated insights.
+      Options reflect the intersection of both datasets.
+    </p>
+
+    <div class="compare-filters" style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap; margin: 16px 0;">
+      <label style="display: flex; flex-direction: column; min-width: 280px;">
+        Distributor:
+        <div class="input-wrapper">
+          <select id="compareDistributorSelect" disabled>
+            <option value="">-- Select Distributor --</option>
+          </select>
+        </div>
+      </label>
+      <label style="display: flex; flex-direction: column; min-width: 280px;">
+        Segment:
+        <div class="input-wrapper">
+          <div class="ms-dropdown">
+            <button type="button" class="ms-toggle">Select Segments (0)</button>
+            <div id="compareSegmentPicker" class="ms-container" aria-label="Select one or more segments" hidden></div>
+          </div>
+        </div>
+      </label>
+    </div>
+    <div class="compare-actions" style="margin-top: 12px;">
+      <button class="btn" id="compareRunBtn" disabled aria-disabled="true">Run Comparison</button>
+    </div>
+
+    <!-- Summary KPIs -->
+    <div id="compareSummary" class="map-card" style="margin: 12px 0;">
+      <h3 class="map-title">Summary</h3>
+      <div class="kpi-row" id="compareSummaryContent"></div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="results-grid" style="margin-top: 12px;">
+      <div class="results-section">
+        <h3>Top Application Areas & DREG Segments</h3>
+        <div id="compareTopAreasChart"></div>
+      </div>
+    </div>
+
+    <!-- Detail Tables -->
+    <div class="results-grid" style="margin-top: 12px;">
+      <div class="results-section">
+        <div id="compareAppsTable"></div>
+      </div>
+      <div class="results-section">
+        <div id="compareDregsTable"></div>
+      </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="loading" id="compareLoading" aria-live="polite">
       <div class="spinner" aria-hidden="true"></div>
-      <p>Processing your query...</p>
-    </div>
-
-    <!-- Results -->
-    <div class="results-container" id="resultsContainer">
-      <!-- Matches Section -->
-      <div class="results-section" style="margin-top: 20px;" id="matchesSection">
-        <h3>Potential Matches Found – Leads that Became Business Opportunities</h3>
-        <div id="matchesTable"></div>
-      </div>
-      <div class="results-grid">
-        <div class="results-section">
-          <h3>Business Opportunities Filtered</h3>
-          <div id="masterTable"></div>
-        </div>
-        <div class="results-section">
-          <h3>All Campaign Leads</h3>
-          <div id="campaignTable"></div>
-        </div>
-      </div>
+      <p>Building your comparison…</p>
     </div>
   </section>
 
-  <!-- Inline helper to populate Target Country dropdown from Master file + filters -->
   <script type="module" src="scripts/main.js"></script>
+  <script type="module" src="scripts/compareModule.js"></script>
 </body>
 </html>
