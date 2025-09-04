@@ -615,6 +615,8 @@ export async function loadDregModule() {
           renderCacheControls({ container: cacheUIEl, storeKey: 'dregs', onClear: () => {} });
         }
       });
+      // Safe persistence call after initial load/persist (no broadcast/global Compare)
+      try { await DataStore.set('dregs', initialData, { source: 'dregExcel' }); } catch (e) {}
     } else {
       if (statusEl) setUploadStatus(statusEl, { state: 'idle', message: 'Please upload your DREG Excel workbook to begin.' });
       await renderCacheControls({
@@ -632,6 +634,8 @@ export async function loadDregModule() {
           renderCacheControls({ container: cacheUIEl, storeKey: 'dregs', onClear: () => {} });
         }
       });
+      // Safe persistence call for empty state (no broadcast/global Compare)
+      try { await DataStore.set('dregs', [], { source: 'dregExcel' }); } catch (e) {}
     }
   } catch (err) {
     console.error("Failed to load initial DREG data:", err);
