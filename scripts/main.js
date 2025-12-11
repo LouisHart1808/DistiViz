@@ -1,3 +1,9 @@
+// -------------------------------
+// Main entry: tab routing + module lazy-loading
+// -------------------------------
+
+// DOM references (defensive: elements may be absent in some tabs)
+
 const regionalMapSection = document.getElementById('regionalMapSection');
 const navApps = document.getElementById('nav-apps');
 const navDregs = document.getElementById('nav-dregs');

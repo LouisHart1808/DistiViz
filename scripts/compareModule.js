@@ -1,5 +1,8 @@
 import { renderGroupedTables } from './visuals.js';
 
+// scripts/compareModule.js
+// Compare Apps vs DREGs module (no year logic)
+
 let U = {};
 (async () => {
   try {
@@ -460,6 +463,7 @@ function bindEvents() {
     listenForModuleEvents();
     tryHydrateFromGlobals();
     hydrateFromStore();
+    // maybeEnable(); // Removed: hydrateFromStore() already calls maybeEnable()
     bindEvents();
   }
 })();

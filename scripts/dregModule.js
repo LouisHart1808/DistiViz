@@ -1,6 +1,6 @@
 import { loadCSV, formatDate, downloadCSV, applyFilters, bindDropInput, setUploadStatus, formatBytes, DataStore, renderCacheControls } from './utils.js';
 import { renderGroupedTables, renderBarChart, renderChoroplethMap } from './visuals.js';
-
+// --- New helpers for Excel upload processing ---
 async function ensureXLSX() {
   if (typeof XLSX !== 'undefined') return;
   await new Promise((resolve, reject) => {
@@ -12,7 +12,7 @@ async function ensureXLSX() {
     document.head.appendChild(s);
   });
 }
-let __dregDataCache = null;
+let __dregDataCache = null; // cache the processed dataset
 
 async function readExcelFile(file) {
   return new Promise((resolve, reject) => {
@@ -47,6 +47,7 @@ function normalizeHeader(h) {
 
 // Convert raw rows from Excel "Data" sheet into the schema used by DistiDregs.csv
 function transformDataRows(rawRows) {
+  // Mapping from normalized excel headers to our desired keys (only exact 15 columns)
   const headerMap = {
     "MAIN DISTRIBUTOR": "Distributor",
     "SUBREGION RESP": "Subregion Resp",
@@ -468,7 +469,7 @@ export async function loadDregModule() {
         container,
         groupedData: d3.group(filtered, d => d["Subregion Resp"]),
         columns: [
-          "Country Resale Customer", "Resale Customer",
+          "Subregion Resp", "Country Resale Customer", "Resale Customer",
           "Segment", "Market Segment", "Market Application", "DIV", "PL",
           "Project Status", "Reg Status", "Registration Date", "Approval Date", "DREG Rev 3y"
         ],
