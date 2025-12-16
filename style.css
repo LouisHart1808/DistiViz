@@ -63,7 +63,8 @@ input[type="date"]:focus {
   box-shadow: 0 0 4px rgba(0, 119, 204, 0.3);
 }
 
-#scoreValue {
+#scoreValue,
+#compareScoreValue {
   font-weight: bold;
   margin-left: 8px;
   color: #0077cc;
@@ -366,7 +367,8 @@ body.dark-mode button:hover {
   background: linear-gradient(135deg, #555, #333);
 }
 
-body.dark-mode #scoreValue {
+body.dark-mode #scoreValue,
+body.dark-mode #compareScoreValue {
   color: #80bfff;
 }
 
@@ -693,10 +695,6 @@ body.dark-mode .upload-area {
 body.dark-mode .upload-area.drag { background: #2d3644; }
 body.dark-mode #appsUploadStatus { color: #c7d7f0; }
 
-/* ================================
-   Compare Module (Apps vs DREGs)
-   ================================ */
-
 #compareSection {
   margin: 24px 0 36px;
 }
@@ -725,6 +723,7 @@ body.dark-mode #appsUploadStatus { color: #c7d7f0; }
   flex-wrap: wrap;
   margin: 16px 0 0;
 }
+
 #compareSection .compare-filters label {
   display: flex;
   flex-direction: column;
@@ -732,11 +731,30 @@ body.dark-mode #appsUploadStatus { color: #c7d7f0; }
   min-width: 220px;
   margin: 0;
 }
+
 #compareSection .compare-filters .input-wrapper {
   display: flex;
   align-items: center;
   width: 320px;
   max-width: 100%;
+}
+
+#compareSection .compare-filters .slider-group {
+  flex: 1 1 100%;
+  width: 100%;
+  margin-top: 16px;
+}
+
+#compareSection .compare-filters .slider-group > label {
+  display: inline-block;
+  min-width: auto;
+  margin-right: 12px;
+  white-space: nowrap;
+}
+
+#compareSection .compare-filters .slider-group .slider-wrapper {
+  flex: 1;
+  min-width: 0;
 }
 
 /* Hard-sync box metrics for both controls */

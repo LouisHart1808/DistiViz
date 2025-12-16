@@ -1,8 +1,5 @@
 import { renderGroupedTables } from './visuals.js';
 
-// scripts/compareModule.js
-// Compare Apps vs DREGs module (no year logic)
-
 let U = {};
 (async () => {
   try {
@@ -36,6 +33,8 @@ const els = {
   nav: document.getElementById('nav-compare'),
   distributor: document.getElementById('compareDistributorSelect'),
   segmentPicker: document.getElementById('compareSegmentPicker'),
+  scoreSlider: document.getElementById('compareScoreSlider'),
+  scoreValue: document.getElementById('compareScoreValue'),
   runBtn: document.getElementById('compareRunBtn'),
   kpi: document.getElementById('compareSummaryContent'),
   topAreas: document.getElementById('compareTopAreasChart'),
@@ -65,20 +64,21 @@ const FIELD = {
 };
 
 const FIELD_APPS = {
-  segL3: ['System/Application Level III','Level III','Application Segment','Segment'],
-  marketSeg: ['System/Application Level II','Level II','Market Segment'],
-  marketApp: ['Application List Light Application','Application List','Market Application'],
+  segL3: ['System/Application Level III', 'Level III', 'Application Segment', 'Segment'],
+  marketSeg: ['System/Application Level II', 'Level II', 'Market Segment'],
+  marketApp: ['Application List Light Application', 'Application List', 'Market Application'],
   region: ['Region'],
-  leadDiv: ['Lead DIV','Lead Division']
+  leadDiv: ['Lead DIV', 'Lead Division'],
+  confidence: ['Confidence', 'Confidence Score', 'Score', 'Confidence (%)', 'Confidence %'],
 };
 
 const FIELD_DREG = {
   seg: ['Segment'],
-  marketSeg: ['Market Segment','System/Application Level II','Level II'],
-  marketApp: ['Market Application','Application List Light Application','Application'],
-  resale: ['Resale Customer','Customer'],
-  subresp: ['Subregion Resp','Subregion Responsible','Subregion Responsible Name'],
-  countryResale: ['Country Resale Customer','Country']
+  marketSeg: ['Market Segment', 'System/Application Level II', 'Level II'],
+  marketApp: ['Market Application', 'Application List Light Application', 'Application'],
+  resale: ['Resale Customer', 'Customer'],
+  subresp: ['Subregion Resp', 'Subregion Responsible', 'Subregion Responsible Name'],
+  countryResale: ['Country Resale Customer', 'Country'],
 };
 
 const getFirstField = (row, candidates) => candidates.find(k => k in row);
@@ -197,7 +197,7 @@ function renderSegmentPicker(options) {
   }
 
   const makeItem = (label) => {
-    const id = `seg_${label.replace(/[^a-z0-9]+/gi,'_')}`;
+    const id = `seg_${label.replace(/[^a-z0-9]+/gi, '_')}`;
     const div = document.createElement('label');
     div.className = 'ms-item';
     div.innerHTML = `<input type="checkbox" value="${escapeHtml(label)}" id="${id}" /> <span>${escapeHtml(label)}</span>`;
@@ -214,7 +214,7 @@ function renderSegmentPicker(options) {
       toggleBtn.textContent = n > 0 ? `Select Segments (${n})` : 'Select Segments (All)';
     }
   };
-  root.addEventListener('change', (e)=>{ if (e.target.matches('.ms-item input')) refreshCount(); });
+  root.addEventListener('change', (e) => { if (e.target.matches('.ms-item input')) refreshCount(); });
 
   searchEl.addEventListener('input', () => {
     const q = searchEl.value.toLowerCase().trim();
@@ -224,11 +224,11 @@ function renderSegmentPicker(options) {
     });
   });
 
-  root.querySelector('[data-act="all"]').addEventListener('click', ()=>{
+  root.querySelector('[data-act="all"]').addEventListener('click', () => {
     root.querySelectorAll('.ms-item input').forEach(cb => cb.checked = true);
     refreshCount();
   });
-  root.querySelector('[data-act="none"]').addEventListener('click', ()=>{
+  root.querySelector('[data-act="none"]').addEventListener('click', () => {
     root.querySelectorAll('.ms-item input').forEach(cb => cb.checked = false);
     refreshCount();
   });
@@ -251,7 +251,7 @@ function renderTopAreas(appRows, dregRows) {
   // Color map for union of category names
   const allNames = new Set([
     ...topA.entries.map(([n]) => String(n)),
-    ...topD.entries.map(([n]) => String(n))
+    ...topD.entries.map(([n]) => String(n)),
   ]);
   const colorMap = {};
   for (const name of allNames) colorMap[name.toLowerCase()] = colorFromString(name);
@@ -336,9 +336,9 @@ function renderTables(appRows, dregRows) {
     'Market Application': valOf(r, FIELD_APPS.marketApp),
     'Region': valOf(r, FIELD_APPS.region),
     'Lead DIV': valOf(r, FIELD_APPS.leadDiv),
-    'Confidence': r.Confidence ?? r['Confidence'] ?? ''
+    'Confidence': getAppConfidence(r),
   }));
-  const appCols = ['Segment','Market Segment','Market Application','Region','Lead DIV','Confidence'];
+  const appCols = ['Segment', 'Market Segment', 'Market Application', 'Region', 'Lead DIV', 'Confidence'];
 
   renderGroupedTables({
     container: appsSel,
@@ -356,7 +356,7 @@ function renderTables(appRows, dregRows) {
     'Subregion Responsbible': valOf(r, FIELD_DREG.subresp),
     'Country Resale Customer': valOf(r, FIELD_DREG.countryResale),
   }));
-  const dregCols = ['Segment','Market Segment','Market Application','Resale Customer','Subregion Responsbible','Country Resale Customer'];
+  const dregCols = ['Segment', 'Market Segment', 'Market Application', 'Resale Customer', 'Subregion Responsbible', 'Country Resale Customer'];
 
   renderGroupedTables({
     container: dregsSel,
@@ -375,8 +375,34 @@ function escapeHtml(s) {
     .replaceAll("'", '&#39;');
 }
 
+function parseNumber(v) {
+  if (v == null) return NaN;
+  if (typeof v === 'number') return v;
+  const s = String(v).trim();
+  if (!s) return NaN;
+  const cleaned = s.replace(/%/g, '').replace(/,/g, '');
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function getAppConfidence(row) {
+  const raw = valOf(row, FIELD_APPS.confidence) || row.Confidence || row['Confidence'] || '';
+  const n = parseNumber(raw);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function getMinConfidence() {
+  const n = els.scoreSlider ? Number(els.scoreSlider.value) : 0;
+  return Number.isFinite(n) ? n : 0;
+}
+
+function syncMinConfidenceUI() {
+  if (!els.scoreSlider || !els.scoreValue) return;
+  els.scoreValue.textContent = String(getMinConfidence());
+}
+
 // ---------- Filtering logic ----------
-function getSelectedSegments(){
+function getSelectedSegments() {
   const root = els.segmentPicker;
   if (!root) return [];
   return Array.from(root.querySelectorAll('.ms-item input:checked'))
@@ -387,6 +413,8 @@ function runComparison() {
   const dist = (els.distributor.value || '').trim();
   const distKey = dist.toLowerCase();
   const segKeys = getSelectedSegments();
+  const minConf = getMinConfidence();
+
   const matchSeg = (val) => {
     if (!segKeys.length) return true; // no selection -> ALL
     const s = String(val || '').trim().toLowerCase();
@@ -403,7 +431,10 @@ function runComparison() {
 
   const dRows = dedupeByFirstAvailableKey(dRowsRaw, FIELD.regId);
 
-  const aFiltered = aRows.filter(r => matchSeg(getVal(r, FIELD.segment)));
+  const aFiltered = aRows.filter(r => {
+    if (!matchSeg(getVal(r, FIELD.segment))) return false;
+    return getAppConfidence(r) >= minConf;
+  });
   const dFiltered = dRows.filter(r => matchSeg(getVal(r, FIELD.segment)));
 
   els.loading.style.display = 'flex';
@@ -455,6 +486,14 @@ function dedupeByFirstAvailableKey(rows, candidates) {
 // ---------- Event bindings ----------
 function bindEvents() {
   els.runBtn.addEventListener('click', runComparison);
+
+  if (els.scoreSlider) {
+    syncMinConfidenceUI();
+    els.scoreSlider.addEventListener('input', () => {
+      syncMinConfidenceUI();
+      runComparison();
+    });
+  }
 }
 
 // ---------- Boot ----------
@@ -465,6 +504,7 @@ function bindEvents() {
     hydrateFromStore();
     // maybeEnable(); // Removed: hydrateFromStore() already calls maybeEnable()
     bindEvents();
+    syncMinConfidenceUI();
   }
 })();
 
